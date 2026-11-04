@@ -12,10 +12,9 @@ import time
 import ubinascii
 import machine
 from umqtt.simple import MQTTClient
-
 from config import (
-    WIFI_SSID, WIFI_PASS, MQTT_BROKER, MQTT_PUERTO, KEEPALIVE_S,
-    TIMEOUT_WIFI_MS, INTERVALO_REINTENTO_RED_MS, INTERVALO_PING_MS,
+    WIFI_SSID, WIFI_PASS, MQTT_BROKER, MQTT_PUERTO, MQTT_USER, MQTT_PASS,
+    KEEPALIVE_S, TIMEOUT_WIFI_MS, INTERVALO_REINTENTO_RED_MS, INTERVALO_PING_MS,
 )
 
 
@@ -63,12 +62,13 @@ class Red:
         except Exception:
             pass
         self._cliente = None
-
+        
     def _conectar_mqtt(self):
         try:
             cliente = MQTTClient(
-                b'eco_' + ubinascii.hexlify(machine.unique_id()),
-                MQTT_BROKER, port=MQTT_PUERTO, keepalive=KEEPALIVE_S)
+                "cliente_ecoclasifica", MQTT_BROKER, port=MQTT_PUERTO,
+                user=MQTT_USER, password=MQTT_PASS, keepalive=KEEPALIVE_S,
+            )
             cliente.set_callback(self._callback)
             cliente.connect()
             for topico in self._topicos:
@@ -80,7 +80,7 @@ class Red:
         self._mqtt_ok = True
         self._ultimo_ping = time.ticks_ms()
         print("MQTT: conectado a", MQTT_BROKER)
-
+        
     def actualizar(self):
         """Llamar UNA vez por vuelta del loop. Escucha comandos (check_msg no
         bloquea) y reconecta cada INTERVALO_REINTENTO_RED_MS si se cae algo."""
@@ -118,3 +118,4 @@ class Red:
             print("MQTT: falló la publicación, se reintentará la conexión")
             self._cerrar()
             return False
+

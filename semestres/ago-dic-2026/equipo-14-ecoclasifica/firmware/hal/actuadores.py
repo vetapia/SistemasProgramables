@@ -9,7 +9,7 @@
 
 from machine import Pin, PWM
 
-from config import PINES, RELE_ACTIVO_BAJO, BUZZER_ACTIVO_BAJO
+from config import PINES, RELE_ACTIVO_BAJO, BUZZER_ACTIVO_BAJO, SERVO_ANGULOS
 
 
 def _nivel(encendido, activo_bajo):
@@ -26,22 +26,33 @@ class Actuadores:
         self._buzzer_on = False
         self._rele_on = False
 
-        # Servo: la frecuencia va en el constructor (si se asigna después, el servo zumba sin moverse).
-        self._servo = PWM(Pin(PINES['SERVO']), freq=50)
-        self._servo.duty_ns(0)  # sin señal hasta el primer comando: no se mueve al arrancar
-        self._angulo = None
+        # Un servo por tapa. La frecuencia va en el constructor (si se asigna después, zumba sin moverse).
+        self._servos = {}
+        self._angulos = {}
+        for nombre in SERVO_ANGULOS:
+            servo = PWM(Pin(PINES['SERVO_' + nombre.upper()]), freq=50)
+            servo.duty_ns(0)  # sin señal hasta el primer comando: no se mueve al arrancar
+            self._servos[nombre] = servo
+            self._angulos[nombre] = None
+            
+            
+        # ---------------- Servos (una tapa cada uno) ----------------
 
-    # ---------------- Servo ----------------
-
-    def mover_servo(self, angulo):
-        """Gira el servo a 'angulo' (0-180). Pulso de 0.5 ms a 2.5 ms."""
+    def mover_servo(self, nombre, angulo):
+        """Gira el servo de la tapa 'nombre' a 'angulo' (0-180). Pulso de 0.5 ms a 2.5 ms."""
         angulo = max(0, min(180, int(angulo)))
         ns = int(500000 + (angulo / 180) * 2000000)
-        self._servo.duty_ns(ns)
-        self._angulo = angulo
+        self._servos[nombre].duty_ns(ns)
+        self._angulos[nombre] = angulo
 
-    def angulo_servo(self):
-        return self._angulo
+    def abrir_tapa(self, nombre):
+        self.mover_servo(nombre, SERVO_ANGULOS[nombre][1])
+
+    def cerrar_tapa(self, nombre):
+        self.mover_servo(nombre, SERVO_ANGULOS[nombre][0])
+
+    def angulo_servo(self, nombre):
+        return self._angulos[nombre]
 
     # ---------------- Buzzer activo ----------------
 
@@ -60,3 +71,4 @@ class Actuadores:
 
     def rele_encendido(self):
         return self._rele_on
+

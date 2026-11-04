@@ -9,8 +9,6 @@
 # Solo para pruebas: aquí sí se usa time.sleep porque no es el loop del proyecto.
 
 import time
-
-from config import SERVO_POSICIONES
 from hal.sensores import Sensores
 from hal.actuadores import Actuadores
 
@@ -46,10 +44,13 @@ for _ in range(15):
         print("Golpe (pico) = {:.2f} g".format(pico))
     esperar(400)
 
-print("--- 4/6 Servo: papel -> plástico -> metal -> plástico ---")
-for nombre in (b'papel', b'plastico', b'metal', b'plastico'):
-    print("Servo a", nombre, "=", SERVO_POSICIONES[nombre], "grados")
-    actuadores.mover_servo(SERVO_POSICIONES[nombre])
+print("--- 4/6 Servos: cada tapa abre y cierra ---")
+for nombre in ('papel', 'plastico', 'metal'):
+    print("Tapa", nombre, "-> abierta")
+    actuadores.abrir_tapa(nombre)
+    esperar(1200)
+    print("Tapa", nombre, "-> cerrada")
+    actuadores.cerrar_tapa(nombre)
     esperar(1200)
 
 print("--- 5/6 Buzzer: debe sonar 1 segundo ---")
@@ -67,3 +68,4 @@ for _ in range(2):
 print("Si el relé hace clic al arrancar y se suelta al 'encender', cambia RELE_ACTIVO_BAJO en config.py")
 
 print("--- Prueba completa ---")
+

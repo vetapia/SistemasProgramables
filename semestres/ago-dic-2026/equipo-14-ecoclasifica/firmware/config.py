@@ -7,9 +7,18 @@
 # Semestre:  ago-dic-2026
 # ============================================
 
-WIFI_SSID = "TU_WIFI"
-WIFI_PASS = "TU_PASSWORD"
-MQTT_BROKER = "192.168.X.X" # Reemplaza con la IPv4 de tu laptop
+WIFI_SSID = "Totalplay-C6AE"
+WIFI_PASS = "C6AEA94AGWhz5U5w"
+MQTT_BROKER = "192.168.100.7"  # IPv4 de tu laptop
+MQTT_PUERTO = 1883
+MQTT_USER = "admin"
+MQTT_PASS = "Ariel2026"
+
+# Tiempos de red
+KEEPALIVE_S = 60
+TIMEOUT_WIFI_MS = 15000
+INTERVALO_REINTENTO_RED_MS = 5000
+INTERVALO_PING_MS = 20000  # siempre menor que KEEPALIVE_S
 
 # Pines Sensores
 PIN_TRIG = 19
@@ -28,6 +37,29 @@ PIN_SERVO_PAPEL = 18
 PIN_SERVO_PLASTICO = 5
 PIN_SERVO_METAL = 15
 
-# Lógica de actuadores (Cambiar a True si encienden en estado bajo)
+# Lógica de actuadores (cambiar a True si encienden en estado bajo)
 RELE_ACTIVO_BAJO = False
 BUZZER_ACTIVO_BAJO = False
+
+# --- Requeridos por hal/ ---
+PINES = {
+    'TRIG': PIN_TRIG, 'ECHO': PIN_ECHO, 'LDR': PIN_LDR,
+    'SDA': PIN_SDA, 'SCL': PIN_SCL,
+    'BUZZER': PIN_BUZZER, 'RELE': PIN_RELE,
+    'SERVO_PAPEL': PIN_SERVO_PAPEL,
+    'SERVO_PLASTICO': PIN_SERVO_PLASTICO,
+    'SERVO_METAL': PIN_SERVO_METAL,
+}
+
+DISTANCIA_MIN_CM = 2
+DISTANCIA_MAX_CM = 400
+INTERVALO_DISTANCIA_MS = 100
+INTERVALO_MPU_MS = 20
+INTERVALO_RECONEXION_MPU_MS = 1000
+
+# Ángulos de la compuerta por tipo de residuo (ajústalos al montaje real)
+SERVO_ANGULOS = {
+    'papel':    (0, 90),
+    'plastico': (0, 90),
+    'metal':    (0, 90),
+}

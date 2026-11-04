@@ -1,7 +1,7 @@
 # ============================================
 # Proyecto:  EcoClasifica
 # Archivo:   main.py
-# Objetivo:  Flujo principal MQTT, lectura de sensores y control de actuadores
+# Objetivo:  Loop principal: publica sensores por MQTT y ejecuta comandos de actuadores.
 # Equipo:    Franco Torres Rodríguez 23240410 / Tiquet Andrade Ariel Carolina 23241131
 # Materia:   Sistemas Programables — ISC TecNM León
 # Semestre:  ago-dic-2026
@@ -9,75 +9,76 @@
 
 import time
 from machine import Pin
-from red import conecta_wifi, conecta_mqtt
+
 import config
-import hal.sensores as sensores
+from red import Red
+from hal.sensores import Sensores
+from hal.actuadores import Actuadores
 
-# Inicializar actuadores físicos
-rele = Pin(config.PIN_RELE, Pin.OUT)
-buzzer = Pin(config.PIN_BUZZER, Pin.OUT)
-led_integrado = Pin(config.PIN_LED, Pin.OUT)
+INTERVALO_PUBLICACION_MS = 2000
 
-def set_actuador(pin_obj, estado, activo_bajo):
-    if activo_bajo:
-        pin_obj.value(0 if estado else 1)
-    else:
-        pin_obj.value(1 if estado else 0)
+# Tópicos de comando (el payload es b"1" o b"0")
+T_RELE = b"ecoclasifica/actuador/rele/cmd"
+T_BUZZER = b"ecoclasifica/actuador/buzzer/cmd"
+T_LED = b"ecoclasifica/actuador/led/cmd"
+T_SERVOS = {
+    b"ecoclasifica/actuador/servo_papel/cmd": "papel",
+    b"ecoclasifica/actuador/servo_plastico/cmd": "plastico",
+    b"ecoclasifica/actuador/servo_metal/cmd": "metal",
+}
 
-def mqtt_callback(topic, msg):
-    topico = topic.decode('utf-8')
-    mensaje = msg.decode('utf-8')
-    print(f"Comando recibido - Tópico: {topico}, Mensaje: {mensaje}")
-    
-    # Actuadores físicos
-    if topico == "ecoclasifica/actuador/rele/cmd":
-        set_actuador(rele, int(mensaje), config.RELE_ACTIVO_BAJO)
-    elif topico == "ecoclasifica/actuador/buzzer/cmd":
-        set_actuador(buzzer, int(mensaje), config.BUZZER_ACTIVO_BAJO)
-    elif topico == "ecoclasifica/actuador/led/cmd":
-        led_integrado.value(int(mensaje))
-        
-    # Simulación de compuertas (Servos)
-    elif topico == "ecoclasifica/actuador/servo_papel/cmd":
-        print(f">>> SIMULACIÓN: Abriendo compuerta PAPEL a {mensaje} grados (Servo no conectado)")
-    elif topico == "ecoclasifica/actuador/servo_plastico/cmd":
-        print(f">>> SIMULACIÓN: Abriendo compuerta PLÁSTICO a {mensaje} grados (Servo no conectado)")
-    elif topico == "ecoclasifica/actuador/servo_metal/cmd":
-        print(f">>> SIMULACIÓN: Abriendo compuerta METAL a {mensaje} grados (Servo no conectado)")
+sensores = Sensores()
+actuadores = Actuadores()
+led = Pin(config.PIN_LED, Pin.OUT, value=0)
 
-def main():
-    conecta_wifi()
-    cliente = conecta_mqtt(mqtt_callback)
-    
-    # Suscripciones
-    cliente.subscribe("ecoclasifica/actuador/rele/cmd")
-    cliente.subscribe("ecoclasifica/actuador/buzzer/cmd")
-    cliente.subscribe("ecoclasifica/actuador/led/cmd")
-    cliente.subscribe("ecoclasifica/actuador/servo_papel/cmd")
-    cliente.subscribe("ecoclasifica/actuador/servo_plastico/cmd")
-    cliente.subscribe("ecoclasifica/actuador/servo_metal/cmd")
-    print("Suscrito a tópicos de actuadores.")
 
-    ultimo_envio = time.ticks_ms()
-    
-    while True:
-        cliente.check_msg()
-        
-        if time.ticks_diff(time.ticks_ms(), ultimo_envio) > 2000:
-            # Leer sensores
-            distancia = sensores.leer_distancia()
-            luz = sensores.leer_ldr()
-            golpe = sensores.leer_mpu()
-            
-            # Publicar datos
-            cliente.publish("ecoclasifica/sensor/distancia", str(distancia))
-            cliente.publish("ecoclasifica/sensor/luz", str(luz))
-            cliente.publish("ecoclasifica/sensor/golpe", str(golpe))
-            
-            print(f"Publicado -> Distancia: {distancia}cm, Luz: {luz}, Golpe: {golpe}g")
-            ultimo_envio = time.ticks_ms()
-            
-        time.sleep(0.1)
+def on_mensaje(topico, msg):
+    print("Comando:", topico, msg)
+    encender = (msg == b"1")
+    try:
+        if topico == T_RELE:
+            actuadores.rele(encender)
+        elif topico == T_BUZZER:
+            actuadores.buzzer(encender)
+        elif topico == T_LED:
+            led.value(1 if encender else 0)
+        elif topico in T_SERVOS:
+            tapa = T_SERVOS[topico]
+            if encender:
+                actuadores.abrir_tapa(tapa)
+            else:
+                actuadores.cerrar_tapa(tapa)
+    except Exception as e:
+        print("Error ejecutando comando:", e)
 
-if __name__ == "__main__":
-    main()
+
+red = Red(on_mensaje, [T_RELE, T_BUZZER, T_LED] + list(T_SERVOS.keys()))
+
+if red.conectar_wifi():
+    print("WiFi OK, IP:", red.ip())
+else:
+    print("WiFi: no se pudo conectar (se reintentará en el loop)")
+
+ultimo_pub = time.ticks_ms()
+while True:
+    sensores.actualizar()
+    red.actualizar()
+
+    ahora = time.ticks_ms()
+    if time.ticks_diff(ahora, ultimo_pub) >= INTERVALO_PUBLICACION_MS:
+        ultimo_pub = ahora
+
+        distancia = sensores.leer_distancia()
+        golpe = sensores.obtener_golpe()
+        luz = sensores.obtener_luz()
+
+        # -1 significa "sin lectura válida" (sensor desconectado o fuera de rango)
+        d_txt = -1 if distancia is None else round(distancia, 1)
+        g_txt = -1 if golpe is None else round(golpe, 2)
+
+        red.publicar("ecoclasifica/sensor/distancia", d_txt)
+        red.publicar("ecoclasifica/sensor/luz", luz)
+        red.publicar("ecoclasifica/sensor/golpe", g_txt)
+        print("Dist:", d_txt, "cm | Luz:", luz, "| Golpe:", g_txt, "g")
+
+    time.sleep_ms(20)
