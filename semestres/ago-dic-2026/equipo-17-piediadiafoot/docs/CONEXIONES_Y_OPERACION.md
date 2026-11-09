@@ -3,7 +3,7 @@
 **Integrantes:**
 1. GEOVANNI MORENO GOMEZ       | 23240475 |
 2. DANNA VALERIA ANGELES PEREZ | 23240335 |
-3. ANDREA LOPEZ ESTRADA        | 23240168 |  Nota:No aporto nada en esta sección
+3. ANDREA LOPEZ ESTRADA        | 23240168 | 
 
 
 ## ESP32 DevKit V1 — asignación de pines propuesta
