@@ -1,0 +1,31 @@
+GET localhost:5189/api/group?page=1&size=10
+
+###
+GET localhost:5189/api/group?page=1&size=10&name=26C
+
+###
+GET localhost:5189/api/group/1
+
+###
+POST localhost:5189/api/group/
+Content-Type: application/json
+
+{
+  "Name": "26C",
+  "Period": "ENERO-JUNIO-2027",
+  "Schedule": "10:30-12:15"
+}
+
+###
+
+PUT localhost:5189/api/group/3
+Content-Type: application/json
+
+{
+  "Name": "10C",
+  "Period": "ENERO-JUNIO-2026",
+  "Schedule": "12:15-13:55"
+}
+
+###
+DELETE localhost:5189/api/group/3

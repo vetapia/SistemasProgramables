@@ -1,0 +1,40 @@
+<div class="relative w-full">
+  <fieldset class="fieldset">
+    <legend class="fieldset-legend text-accent">
+        {{textLabel()}}
+    </legend>
+    <input
+      #findInput
+      type="text"
+      autocomplete="off"
+      class="input text-primary w-full"
+      placeholder="Seleccionar {{textLabel().toLowerCase()}}"
+      (focus)="showData.set(true)"
+      (blur)="showData.set(false)"
+      (input)="find.emit(findInput.value)"
+      [value]="selectedValue()"
+    />
+    @if (showData()) {
+        <div
+            class="w-full absolute z-999 bg-base-100 h-32 top-full mt-1 p-3 rounded-md border border-none overflow-y-scroll overflow-x-hidden"
+            (scroll)="onScroll($event)"
+        >
+            @for (result of results(); track result.id) {
+                <div
+                class="w-full text-primary p-2 hover:bg-base-200 cursor-pointer"
+                (mousedown)="onSelect(result)"
+                >
+                    <span class="text-sm">
+                        {{getLabel(result)}}
+                    </span>
+                </div>
+            }
+            @if (isLoading()) {
+                <div class="w-full flex justify-center p-2 overflow-x-hidden bg-base-100 items-center">
+                    <span class="loading loading-spinner text-primary loading-sm"></span>
+                </div>
+            }
+        </div>
+    }
+  </fieldset>
+</div>

@@ -1,0 +1,46 @@
+<label for="dashboard-drawer" aria-label="Cerrar menú" class="drawer-overlay"></label>
+<aside class="flex min-h-full w-72 flex-col bg-base-200">
+  <div class="flex h-16 items-center gap-3 border-b border-base-300 px-4">
+    <img src="/logo.png" alt="Logo SPE" class="h-10 w-10 object-contain" />
+    <div>
+      <p class="font-bold leading-tight">Sistema SPE</p>
+      <p class="text-xs text-base-content/60">Préstamo de material</p>
+    </div>
+  </div>
+
+  <ul class="menu w-full grow gap-1 p-2">
+    @for (section of visibleSections(); track section.title) {
+      <li class="menu-title">{{ section.title }}</li>
+      @for (item of section.items; track item.path) {
+        <li>
+          <a
+            [routerLink]="item.path"
+            [routerLinkActiveOptions]="{ exact: !!item.exact }"
+            routerLinkActive="menu-active"
+          >
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke-width="1.5"
+              stroke="currentColor"
+              class="size-5"
+              aria-hidden="true"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                [attr.d]="item.icon"
+              />
+            </svg>
+            {{ item.label }}
+          </a>
+        </li>
+      }
+    }
+  </ul>
+
+  <div class="border-t border-base-300 p-4">
+    <p class="text-xs text-base-content/60">Sistema de Préstamo de Material</p>
+  </div>
+</aside>

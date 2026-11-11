@@ -1,0 +1,26 @@
+GET localhost:5189/api/material?page=1&size=10
+
+###
+GET localhost:5189/api/material/1
+
+###
+POST localhost:5189/api/material/
+Content-Type: application/json
+
+{
+  "MaterialUid": "11236",
+  "Name": "Sensor de temperatura"
+}
+
+###
+
+PUT localhost:5189/api/material/3
+Content-Type: application/json
+
+{
+  "MaterialUid": "12456",
+  "Name": "Sensor de Proximidad"
+}
+
+###
+DELETE localhost:5189/api/material/1

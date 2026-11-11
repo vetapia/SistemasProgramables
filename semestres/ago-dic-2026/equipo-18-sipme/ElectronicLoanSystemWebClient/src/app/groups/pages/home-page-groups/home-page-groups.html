@@ -1,0 +1,96 @@
+<section>
+    @if (errorMessage()) {
+        <div role="alert" class="alert alert-error mb-4">
+            <span>{{ errorMessage() }}</span>
+        </div>
+    }
+
+    <div class="bg-base-300 rounded-box shadow-md">
+        <div class="flex justify-between p-2 items-center">
+            <span class="text-sm uppercase font-semibold opacity-60 ml-5">
+                Grupos
+            </span>
+            <button
+                class="btn"
+                type="button"
+                aria-label="crear-grupo"
+                (click)="openCreateGroup()"
+            >
+                Añadir
+            </button>
+        </div>
+        <ul class="list">
+            @if (groupResource.isLoading()) {
+                <li class="list-row">
+                    <span class="text-sm opacity-60">Cargando grupos...</span>
+                </li>
+            } @else if (groupResource.error()) {
+                <li class="list-row">
+                    <span class="text-sm text-error">No se pudieron cargar los grupos.</span>
+                </li>
+            } @else if (groupResource.value()?.items?.length === 0) {
+                <li class="list-row">
+                    <span class="text-sm opacity-60">No hay grupos registrados.</span>
+                </li>
+            } @else {
+                @for (group of groupResource.value()?.items; track group.id) {
+                    <li class="list-row">
+                        <div class="size-10 rounded-box bg-base-100 flex items-center justify-center font-bold uppercase">
+                            {{ group.name.charAt(0) }}
+                        </div>
+                        <div>
+                            <div class="font-semibold">{{ group.name }}</div>
+                            <div class="text-xs uppercase font-semibold opacity-60">
+                                {{ group.period }}
+                            </div>
+                            <div class="text-xs opacity-60">
+                                {{ group.schedule }}
+                            </div>
+                        </div>
+                        <button
+                            type="button"
+                            class="btn btn-square btn-ghost"
+                            aria-label="editar-grupo"
+                            (click)="handlerEdit(group)"
+                        >
+                            <svg lucidePencil size="22"></svg>
+                        </button>
+                    </li>
+                }
+            }
+        </ul>
+    </div>
+    <div class="w-full flex justify-center p-2 items-center mt-3">
+        @if (groupResource.hasValue() && groupResource.value()?.totalCount) {
+            <pagination
+                [itemsPagination]="groupResource.value()"
+                [isLoading]="groupResource.isLoading()"
+            />
+        }
+    </div>
+</section>
+
+@if (showCreateGroup()) {
+    @defer (on immediate) {
+        <rigth-slide
+            (closeSlide)="showCreateGroup.set(false)"
+        >
+            <group-form
+                (successAction)="onCreateGroup($event)"
+            />
+        </rigth-slide>
+    }
+}
+
+@if (showEditGroup()) {
+    @defer (on immediate) {
+        <rigth-slide
+            (closeSlide)="showEditGroup.set(false)"
+        >
+            <group-form
+                [groupEdit]="groupToEdit()"
+                (successAction)="onEditGroup($event)"
+            />
+        </rigth-slide>
+    }
+}

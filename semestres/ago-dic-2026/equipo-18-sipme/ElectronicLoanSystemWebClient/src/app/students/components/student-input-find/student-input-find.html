@@ -1,0 +1,10 @@
+<app-input-find
+  [textLabel]="label()"
+  [results]="students()"
+  [displayFn]="getDisplayText"
+  [isLoading]="studentsResource.isLoading()"
+  [selectedValue]="getSelectedText()"
+  (find)="onFind($event)"
+  (loadMore)="onLoadMore()"
+  (selected)="onStudentSelected($event)"
+/>

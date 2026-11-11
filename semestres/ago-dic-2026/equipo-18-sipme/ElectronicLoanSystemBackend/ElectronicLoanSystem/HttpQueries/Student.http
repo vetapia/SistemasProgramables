@@ -1,0 +1,44 @@
+GET localhost:5189/api/students?page=1&size=10
+
+###
+GET localhost:5189/api/students?page=1&size=10&name=Juan
+
+###
+GET localhost:5189/api/students/1
+
+###
+POST localhost:5189/api/students
+Content-Type: application/json
+
+{
+  "Student": {
+    "ControlNumber": "202012",
+    "Semester": 3,
+    "GroupId": 1
+  },
+  "User": {
+    "UserName": "JuanJiol",
+    "Name": "Juan",
+    "LastName": "Perez",
+    "Email": "juan@mail.com",
+    "Password": "Estudiante123!"
+  }
+}
+###
+PUT localhost:5189/api/students/2
+Content-Type: application/json
+
+{
+  "Student": {
+    "ControlNumber": "23240409",
+    "Semester": 4,
+    "GroupId": 1
+  },
+  "User": {
+    "UserName": "Monsesita",
+    "Name": "Monserrat",
+    "LastName": "Lagos",
+    "Email": "monse@mail.com",
+    "Password": "MOnse123!"
+  }
+}

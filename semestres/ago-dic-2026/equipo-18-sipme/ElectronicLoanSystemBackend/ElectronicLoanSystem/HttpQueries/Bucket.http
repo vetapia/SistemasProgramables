@@ -1,0 +1,54 @@
+@host = http://localhost:5189
+@bucketId = 1
+@materialId = 2
+
+### Listar buckets
+GET {{host}}/api/bucket?page=1&size=10
+Accept: application/json
+
+### Consultar un bucket
+GET {{host}}/api/bucket/{{bucketId}}
+Accept: application/json
+
+### Consultar los materiales de un bucket
+GET {{host}}/api/bucket/{{bucketId}}/materials?page=1&size=10
+Accept: application/json
+
+### Crear un bucket (opcionalmente con materiales)
+POST {{host}}/api/bucket
+Content-Type: application/json
+
+{
+  "name": "Caja numero 4",
+  "bucketNumber": 4,
+  "materialIds": [1, 2]
+}
+
+### Actualizar un bucket
+PUT {{host}}/api/bucket/{{bucketId}}
+Content-Type: application/json
+
+{
+  "name": "Caja numero 4 actualizada",
+  "bucketNumber": 4
+}
+
+### Asignar materiales a un bucket
+POST {{host}}/api/bucket/{{bucketId}}/materials/add
+Content-Type: application/json
+
+{
+  "materialIds": [1, 2]
+}
+
+### Desvincular materiales de un bucket
+POST {{host}}/api/bucket/{{bucketId}}/materials/remove
+Content-Type: application/json
+
+{
+  "materialIds": [1, 2]
+}
+
+### Eliminar un bucket
+DELETE {{host}}/api/bucket/{{bucketId}}
+

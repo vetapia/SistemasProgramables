@@ -1,0 +1,133 @@
+<section>
+  @if (errorMessage()) {
+    <div role="alert" class="alert alert-error mb-4">
+      <span>{{ errorMessage() }}</span>
+    </div>
+  }
+
+  <div class="bg-base-300 rounded-box shadow-md p-4 mb-4">
+    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+      <div>
+        <h2 class="text-lg font-bold">Gestión de Préstamos</h2>
+        <p class="text-xs text-base-content/60">Control de préstamos de materiales y devoluciones</p>
+      </div>
+
+      <div class="flex items-center gap-3 w-full sm:w-auto justify-between sm:justify-end">
+        <div class="join">
+          <button
+            class="join-item btn btn-sm"
+            [class.btn-active]="currentStatus() === 'active'"
+            (click)="onChangeStatus('active')"
+          >
+            Activos
+          </button>
+          <button
+            class="join-item btn btn-sm"
+            [class.btn-active]="currentStatus() === 'finished'"
+            (click)="onChangeStatus('finished')"
+          >
+            Finalizados
+          </button>
+          <button
+            class="join-item btn btn-sm"
+            [class.btn-active]="currentStatus() === 'all'"
+            (click)="onChangeStatus('all')"
+          >
+            Todos
+          </button>
+        </div>
+
+        @if (!isStudent()) {
+          <button
+            class="btn btn-sm btn-primary"
+            type="button"
+            aria-label="crear-prestamo"
+            (click)="showCreateLoan.set(true)"
+          >
+            Nuevo Préstamo
+          </button>
+        }
+      </div>
+    </div>
+  </div>
+
+  <div class="bg-base-300 rounded-box shadow-md">
+    <ul class="list">
+      @if (loansResource.isLoading()) {
+        <li class="list-row">
+          <span class="text-sm opacity-60">Cargando préstamos...</span>
+        </li>
+      } @else if (loansResource.error()) {
+        <li class="list-row">
+          <span class="text-sm text-error">No se pudieron cargar los préstamos.</span>
+        </li>
+      } @else if (loansResource.value()?.items?.length === 0) {
+        <li class="list-row">
+          <span class="text-sm opacity-60">No hay préstamos para mostrar.</span>
+        </li>
+      } @else {
+        @for (loan of loansResource.value()?.items; track loan.id) {
+          <li class="list-row flex items-center justify-between p-3 border-b border-base-200 last:border-none">
+            <div class="flex items-center gap-3">
+              <div class="avatar placeholder">
+                <div class="bg-neutral text-neutral-content rounded-box w-10 h-10 flex items-center justify-center">
+                  <span class="text-xs uppercase font-bold">{{ loan.material.name.substring(0, 2) }}</span>
+                </div>
+              </div>
+              <div>
+                <div class="font-semibold text-sm">
+                  {{ loan.material.name }}
+                  <span class="text-xs opacity-60 ml-1">({{ loan.material.materialUid }})</span>
+                </div>
+                <div class="text-xs text-base-content/70">
+                  Estudiante: <span class="font-medium text-base-content">{{ loan.user.name }} {{ loan.user.lastName }}</span>
+                  <span class="opacity-60 ml-1">({{ loan.user.email }})</span>
+                </div>
+                <div class="text-xs text-base-content/60 mt-0.5">
+                  Inicio: {{ loan.startDate | date:'dd/MM/yyyy HH:mm' }}
+                  @if (loan.endDate) {
+                    <span class="ml-2">| Fin: {{ loan.endDate | date:'dd/MM/yyyy HH:mm' }}</span>
+                  }
+                </div>
+              </div>
+            </div>
+
+            <div class="flex items-center gap-3">
+              @if (loan.endDate) {
+                <span class="badge badge-success badge-sm font-medium">Devuelto</span>
+              } @else {
+                <span class="badge badge-warning badge-sm font-medium">En préstamo</span>
+                @if (!isStudent()) {
+                  <button
+                    type="button"
+                    class="btn btn-xs btn-outline btn-success"
+                    (click)="onReturnLoan(loan.id)"
+                  >
+                    Devolver
+                  </button>
+                }
+              }
+            </div>
+          </li>
+        }
+      }
+    </ul>
+  </div>
+
+  <div class="w-full flex justify-center p-2 items-center mt-3">
+    @if (loansResource.hasValue() && loansResource.value()?.totalCount) {
+      <pagination
+        [itemsPagination]="loansResource.value()"
+        [isLoading]="loansResource.isLoading()"
+      />
+    }
+  </div>
+</section>
+
+@if (showCreateLoan() && !isStudent()) {
+  @defer (on immediate) {
+    <rigth-slide (closeSlide)="showCreateLoan.set(false)">
+      <loan-form (successAction)="onCreateLoan($event)" />
+    </rigth-slide>
+  }
+}

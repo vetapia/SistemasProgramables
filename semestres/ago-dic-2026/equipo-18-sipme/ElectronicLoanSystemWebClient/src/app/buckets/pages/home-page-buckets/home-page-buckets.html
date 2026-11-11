@@ -1,0 +1,126 @@
+<section>
+  @if (errorMessage()) {
+    <div role="alert" class="alert alert-error mb-4">
+      <span>{{ errorMessage() }}</span>
+    </div>
+  }
+
+  <div class="bg-base-300 rounded-box shadow-md">
+    <div class="flex justify-between p-2 items-center">
+      <span class="text-sm uppercase font-semibold opacity-60 ml-5">
+        Cajones
+      </span>
+      <button
+        class="btn"
+        type="button"
+        aria-label="crear-cajon"
+        (click)="openCreateBucket()"
+      >
+        Añadir
+      </button>
+    </div>
+
+    <ul class="list">
+      @if (bucketResource.isLoading()) {
+        <li class="list-row">
+          <span class="text-sm opacity-60">Cargando cajones...</span>
+        </li>
+      } @else if (bucketResource.error()) {
+        <li class="list-row">
+          <span class="text-sm text-error">No se pudieron cargar los cajones.</span>
+        </li>
+      } @else if (bucketResource.value()?.items?.length === 0) {
+        <li class="list-row">
+          <span class="text-sm opacity-60">No hay cajones registrados.</span>
+        </li>
+      } @else {
+        @for (bucket of bucketResource.value()?.items; track bucket.id) {
+          <li class="list-row items-center justify-between">
+            <div class="size-11 rounded-box bg-base-100 flex items-center justify-center font-bold font-mono text-primary text-base border border-base-200">
+              #{{ bucket.bucketNumber }}
+            </div>
+
+            <div>
+              <div class="font-semibold text-base">{{ bucket.name }}</div>
+              <div class="text-xs opacity-60">Cajón número {{ bucket.bucketNumber }}</div>
+            </div>
+
+            <div class="flex items-center gap-1">
+              <button
+                type="button"
+                class="btn btn-square btn-ghost text-primary"
+                title="Gestionar materiales"
+                aria-label="gestionar-materiales"
+                (click)="handlerManageMaterials(bucket)"
+              >
+                <svg lucidePackage size="20"></svg>
+              </button>
+
+              <button
+                type="button"
+                class="btn btn-square btn-ghost text-base-content/80"
+                title="Editar cajón"
+                aria-label="editar-cajon"
+                (click)="handlerEdit(bucket)"
+              >
+                <svg lucidePencil size="20"></svg>
+              </button>
+
+              <button
+                type="button"
+                class="btn btn-square btn-ghost text-error"
+                title="Eliminar cajón"
+                aria-label="eliminar-cajon"
+                (click)="handlerDelete(bucket)"
+              >
+                <svg lucideTrash size="20"></svg>
+              </button>
+            </div>
+          </li>
+        }
+      }
+    </ul>
+  </div>
+
+  <div class="w-full flex justify-center p-2 items-center mt-3">
+    @if (bucketResource.hasValue() && bucketResource.value()?.totalCount) {
+      <pagination
+        [itemsPagination]="bucketResource.value()"
+        [isLoading]="bucketResource.isLoading()"
+      />
+    }
+  </div>
+</section>
+
+<!-- Slide: Crear Cajón -->
+@if (showCreateBucket()) {
+  @defer (on immediate) {
+    <rigth-slide (closeSlide)="showCreateBucket.set(false)">
+      <bucket-form (successAction)="onCreateBucket($event)" />
+    </rigth-slide>
+  }
+}
+
+<!-- Slide: Editar Cajón -->
+@if (showEditBucket()) {
+  @defer (on immediate) {
+    <rigth-slide (closeSlide)="showEditBucket.set(false)">
+      <bucket-form
+        [bucketEdit]="bucketToEdit()"
+        (successAction)="onEditBucket($event)"
+      />
+    </rigth-slide>
+  }
+}
+
+<!-- Slide: Gestionar Materiales del Cajón -->
+@if (showMaterialsBucket()) {
+  @defer (on immediate) {
+    <rigth-slide (closeSlide)="showMaterialsBucket.set(false)">
+      <bucket-materials-manager
+        [bucket]="bucketToManage()!"
+        (updatedAction)="bucketResource.reload()"
+      />
+    </rigth-slide>
+  }
+}

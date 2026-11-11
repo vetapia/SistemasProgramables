@@ -1,0 +1,63 @@
+<section class="w-full h-screen flex">
+    <section class="w-3/5 relative p-2">
+        <div class="bg-[url('/login_bg.jpg')] bg-cover bg-no-repeat w-full h-full rounded-md absolute z-10"></div>
+        <div class="w-full h-full absolute z-20 bg-black/30"></div>
+    </section>
+    <section class="w-2/5 h-full flex justify-center items-center">
+        <div class="w-96 border shadow-lg rounded-lg p-5">
+            <form [formGroup]="authForm" action="" (ngSubmit)="onLogin()">
+                <div class="flex justify-center">
+                    <img class="w-32 h-28" src="/logo.png" alt="">
+                </div>
+                <div class="text-center">
+                    <h1 class="font-bold text-lg">Sistema SPE</h1>
+                </div>
+                <hr class="my-3 border-gray-300">
+                <div class="mb-3">
+                    <h1 class="text-lg">Iniciar session</h1>
+                </div>
+                <div class="mb-5">
+                    <label 
+                        class="block text-xs mb-2" 
+                        for="email"
+                        >
+                        Correo
+                    </label>
+                    <input 
+                        class="input w-full"
+                        type="email" 
+                        name="email" 
+                        id="email" 
+                        placeholder="example@mail.com"
+                        formControlName="email"
+                    >
+                </div>
+                <div class="mb-5">
+                    <label 
+                        class="block text-xs mb-2" 
+                        for="password"
+                    >
+                        Contraseña
+                    </label>
+                    <input 
+                        class="input w-full"
+                        type="password" 
+                        name="password" 
+                        id="password" 
+                        placeholder="...."
+                        formControlName="password"
+                    >
+                </div>
+                <hr class="my-3 border-gray-300">
+                <div>
+                    <button 
+                        type="submit" 
+                        class="btn w-full"
+                    >
+                    Inciar sesion
+                    </button>
+                </div>
+            </form>
+        </div>
+    </section>
+</section>

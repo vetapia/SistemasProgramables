@@ -1,0 +1,10 @@
+<app-input-find
+  [textLabel]="label()"
+  [results]="groups()"
+  [displayKey]="'name'"
+  [isLoading]="studentsResource.isLoading()"
+  [selectedValue]="groupSelected()?.name ?? ''"
+  (find)="onFind($event)"
+  (loadMore)="onLoadMore()"
+  (selected)="onGroupSelected($event)"
+/>

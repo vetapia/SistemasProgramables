@@ -1,0 +1,171 @@
+<div class="overflow-y-scroll h-full">
+    <form [formGroup]="studentForm" (ngSubmit)="onSendStudent()">
+        <div class="mb-8">
+            <h1 class="font-bold">
+                @if (studentEdit() != null) {
+                    Editar Estudiante
+                } @else {
+                    Crear Estudiante
+                }
+            </h1>
+        </div>
+
+        <div class="mb-5">
+            <label class="block text-xs font-bold mb-1" for="student-username">
+                Nombre de usuario
+            </label>
+            <input
+                class="input w-full"
+                type="text"
+                id="student-username"
+                placeholder="juan123"
+                formControlName="userName"
+            >
+            @if (formUtils.isValidField(studentForm, 'userName')) {
+                <i class="text-warning font-bold text-xs">
+                    {{ formUtils.getFildError(studentForm, 'userName') }}
+                </i>
+            }
+        </div>
+
+        <div class="mb-5">
+            <label class="block text-xs font-bold mb-1" for="student-name">
+                Nombre(s)
+            </label>
+            <input
+                class="input w-full"
+                type="text"
+                id="student-name"
+                placeholder="Juan Carlos"
+                formControlName="name"
+            >
+            @if (formUtils.isValidField(studentForm, 'name')) {
+                <i class="text-warning font-bold text-xs">
+                    {{ formUtils.getFildError(studentForm, 'name') }}
+                </i>
+            }
+        </div>
+
+        <div class="mb-5">
+            <label class="block text-xs font-bold mb-1" for="student-lastname">
+                Apellidos
+            </label>
+            <input
+                class="input w-full"
+                type="text"
+                id="student-lastname"
+                placeholder="Pérez Gómez"
+                formControlName="lastName"
+            >
+            @if (formUtils.isValidField(studentForm, 'lastName')) {
+                <i class="text-warning font-bold text-xs">
+                    {{ formUtils.getFildError(studentForm, 'lastName') }}
+                </i>
+            }
+        </div>
+
+        <div class="mb-5">
+            <label class="block text-xs font-bold mb-1" for="student-email">
+                Correo Electrónico
+            </label>
+            <input
+                class="input w-full"
+                type="email"
+                id="student-email"
+                placeholder="juan@ejemplo.com"
+                formControlName="email"
+            >
+            @if (formUtils.isValidField(studentForm, 'email')) {
+                <i class="text-warning font-bold text-xs">
+                    {{ formUtils.getFildError(studentForm, 'email') }}
+                </i>
+            }
+        </div>
+
+        <div class="mb-5">
+            <label class="block text-xs font-bold mb-1" for="student-password">
+                Contraseña
+                @if (studentEdit() != null) {
+                    <span class="text-xs font-normal opacity-60">(opcional para mantener la actual)</span>
+                }
+            </label>
+            <input
+                class="input w-full"
+                type="password"
+                id="student-password"
+                placeholder="••••••••"
+                formControlName="password"
+            >
+            @if (formUtils.isValidField(studentForm, 'password')) {
+                <i class="text-warning font-bold text-xs">
+                    {{ formUtils.getFildError(studentForm, 'password') }}
+                </i>
+            }
+        </div>
+
+        <div class="mb-5">
+            <label class="block text-xs font-bold mb-1" for="student-controlNumber">
+                Número de Control
+            </label>
+            <input
+                class="input w-full"
+                type="text"
+                id="student-controlNumber"
+                placeholder="20201234"
+                formControlName="controlNumber"
+            >
+            @if (formUtils.isValidField(studentForm, 'controlNumber')) {
+                <i class="text-warning font-bold text-xs">
+                    {{ formUtils.getFildError(studentForm, 'controlNumber') }}
+                </i>
+            }
+        </div>
+
+        <div class="mb-5">
+            <label class="block text-xs font-bold mb-1" for="student-semester">
+                Semestre
+            </label>
+            <input
+                class="input w-full"
+                type="number"
+                id="student-semester"
+                min="1"
+                max="13"
+                placeholder="1"
+                formControlName="semester"
+            >
+            @if (formUtils.isValidField(studentForm, 'semester')) {
+                <i class="text-warning font-bold text-xs">
+                    {{ formUtils.getFildError(studentForm, 'semester') }}
+                </i>
+            }
+        </div>
+
+        <div class="mb-5">
+            <group-input-find
+                [label]="'Grupo'"
+                [initialValue]="selectedGroup()"
+                (selectedAction)="onGroupChange($event)"
+            />
+            @if (formUtils.isValidField(studentForm, 'groupId')) {
+                <i class="text-warning font-bold text-xs">
+                    {{ formUtils.getFildError(studentForm, 'groupId') }}
+                </i>
+            }
+        </div>
+
+        <div>
+            <button
+                class="btn w-full"
+                type="submit"
+                aria-label="guardar-estudiante"
+            >
+                @if (studentEdit() != null) {
+                    Editar
+                } @else {
+                    Crear
+                }
+            </button>
+        </div>
+    </form>
+</div>

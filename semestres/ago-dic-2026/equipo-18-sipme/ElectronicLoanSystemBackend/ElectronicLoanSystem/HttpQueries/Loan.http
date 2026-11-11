@@ -1,0 +1,17 @@
+GET localhost:5189/api/loans/1
+
+###
+GET localhost:5189/api/loans?page=1&size=10
+
+###
+
+POST localhost:5189/api/loans
+Content-Type: application/json
+
+{
+  "UserId": "1d06c626-3d5a-4a4c-b49f-4ca4de601088",
+  "MaterialId": 1
+}
+
+###
+PATCH localhost:5189/api/loans/1

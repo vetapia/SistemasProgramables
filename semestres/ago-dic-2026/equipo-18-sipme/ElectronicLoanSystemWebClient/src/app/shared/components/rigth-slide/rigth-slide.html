@@ -1,0 +1,29 @@
+<section 
+    class="w-full h-screen bg-black/60 absolute inset-0 z-100 flex justify-end overflow-hidden"
+    (click)="closeSlide.emit()"
+    >
+    <div 
+        class="w-96 bg-base-300 rounded-l-2xl" 
+        (click)="$event.stopPropagation()"
+    >
+        <div class="w-full bg-base-100 rounded-tl-2xl flex justify-between px-2 items-center">
+            <div class="flex h-16 items-center gap-3 border-b border-base-300 px-4">
+                <img src="/logo.png" alt="Logo SPE" class="h-10 w-10 object-contain" />
+                <div>
+                <p class="font-bold leading-tight">Sistema SPE</p>
+                <p class="text-xs text-base-content/60">Préstamo de material</p>
+                </div>
+            </div>
+            <button
+                class="cursor-pointer"  
+                aria-label="cerrar-panel" 
+                (click)="closeSlide.emit()"
+            >
+                <svg lucideBadgeX></svg>
+            </button>
+        </div>
+        <div class="p-3">
+            <ng-content></ng-content>
+        </div>
+    </div>
+</section>

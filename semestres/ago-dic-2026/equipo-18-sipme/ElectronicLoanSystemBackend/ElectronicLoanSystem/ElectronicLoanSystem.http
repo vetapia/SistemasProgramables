@@ -1,0 +1,11 @@
+@ElectronicLoanSystem_HostAddress = http://localhost:5189
+
+GET {{ElectronicLoanSystem_HostAddress}}/openapi/v1.json
+Accept: application/json
+
+###
+
+GET {{ElectronicLoanSystem_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###

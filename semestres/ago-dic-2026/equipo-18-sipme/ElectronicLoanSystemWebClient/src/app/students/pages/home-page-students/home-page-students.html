@@ -1,0 +1,101 @@
+<section>
+    @if (errorMessage()) {
+        <div role="alert" class="alert alert-error mb-4">
+            <span>{{ errorMessage() }}</span>
+        </div>
+    }
+
+    <div class="bg-base-300 rounded-box shadow-md">
+        <div class="flex justify-between p-2 items-center">
+            <span class="text-sm uppercase font-semibold opacity-60 ml-5">
+                Estudiantes
+            </span>
+            <button
+                class="btn"
+                type="button"
+                aria-label="crear-estudiante"
+                (click)="openCreateStudent()"
+            >
+                Añadir
+            </button>
+        </div>
+        <ul class="list">
+            @if (studentsResource.isLoading()) {
+                <li class="list-row">
+                    <span class="text-sm opacity-60">Cargando estudiantes...</span>
+                </li>
+            } @else if (studentsResource.error()) {
+                <li class="list-row">
+                    <span class="text-sm text-error">No se pudieron cargar los estudiantes.</span>
+                </li>
+            } @else if (studentsResource.value()?.items?.length === 0) {
+                <li class="list-row">
+                    <span class="text-sm opacity-60">No hay estudiantes registrados.</span>
+                </li>
+            } @else {
+                @for (student of studentsResource.value()?.items; track student.id) {
+                    <li class="list-row">
+                        <div class="size-10 rounded-box bg-base-100 flex items-center justify-center font-bold uppercase">
+                            {{ student.user?.name?.charAt(0) ?? 'E' }}
+                        </div>
+                        <div>
+                            <div class="font-semibold">
+                                {{ student.user?.name }} {{ student.user?.lastName }}
+                            </div>
+                            <div class="text-xs uppercase font-semibold opacity-60">
+                                NC: {{ student.controlNumber }} · Semestre {{ student.semester }}
+                                @if (student.group) {
+                                    · Grupo {{ student.group.name }}
+                                }
+                            </div>
+                            <div class="text-xs opacity-60">
+                                {{ student.user?.email }}
+                            </div>
+                        </div>
+                        <button
+                            type="button"
+                            class="btn btn-square btn-ghost"
+                            aria-label="editar-estudiante"
+                            (click)="handlerEdit(student)"
+                        >
+                            <svg lucidePencil size="22"></svg>
+                        </button>
+                    </li>
+                }
+            }
+        </ul>
+    </div>
+    <div class="w-full flex justify-center p-2 items-center mt-3">
+        @if (studentsResource.hasValue() && studentsResource.value()?.totalCount) {
+            <pagination
+                [itemsPagination]="studentsResource.value()"
+                [isLoading]="studentsResource.isLoading()"
+            />
+        }
+    </div>
+</section>
+
+@if (showCreateStudent()) {
+    @defer (on immediate) {
+        <rigth-slide
+            (closeSlide)="showCreateStudent.set(false)"
+        >
+            <student-form
+                (successAction)="onCreateStudent($event)"
+            />
+        </rigth-slide>
+    }
+}
+
+@if (showEditStudent()) {
+    @defer (on immediate) {
+        <rigth-slide
+            (closeSlide)="showEditStudent.set(false)"
+        >
+            <student-form
+                [studentEdit]="studentToEdit()"
+                (successAction)="onEditStudent($event)"
+            />
+        </rigth-slide>
+    }
+}

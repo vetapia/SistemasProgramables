@@ -1,0 +1,23 @@
+<div class="join">
+  <button
+    type="button"
+    aria-label="página anterior"
+    [disabled]="isLoading() || !hasPrev()"
+    class="join-item btn"
+    (click)="onPrevPage()"
+    >
+    «
+  </button>
+  <span class="join-item btn pointer-events-none">
+    Página {{ itemsPagination().currentPage }} de {{ itemsPagination().totalPages }}
+  </span>
+  <button
+    type="button"
+    aria-label="página siguiente"
+    [disabled]="isLoading() || !hasNext()"
+    class="join-item btn"
+    (click)="onNextPage()"
+    >
+    »
+  </button>
+</div>

@@ -1,0 +1,13 @@
+<loading-page/>
+<div class="drawer lg:drawer-open">
+  <input id="dashboard-drawer" type="checkbox" class="drawer-toggle" />
+
+  <div class="drawer-content flex h-screen flex-col bg-base-100 overflow-y-scroll">
+    <dashboard-header />
+    <main class="flex-1 p-4 lg:p-6">
+      <router-outlet />
+    </main>
+  </div>
+
+  <dashboard-sidebar />
+</div>

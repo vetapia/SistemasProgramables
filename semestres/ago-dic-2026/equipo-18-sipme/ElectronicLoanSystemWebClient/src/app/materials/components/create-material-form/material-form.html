@@ -1,0 +1,69 @@
+<div>
+    <form action="" [formGroup]="materialForm">
+        <div class="mb-8">
+            <h1 class="font-bold">
+                @if (materialEdit() != null) {
+                    Editar
+                }@else {
+                    Crear
+                }
+            </h1>
+        </div>
+        <div class="mb-5">
+            <label 
+                class="block text-xs font-bold mb-1" 
+                for="name"
+            >
+                Nombre
+            </label>
+            <input 
+                class="input w-full"
+                type="text" 
+                name="name" 
+                id="name" 
+                placeholder="Sesnsor de humedad"
+                formControlName="name"
+            >
+            @if (formUtils.isValidField(materialForm, 'name')) {
+                <i class="text-warning font-bold text-xs">
+                  {{ formUtils.getFildError(materialForm, 'name') }}
+                </i>
+            }
+        </div>
+        <div class="mb-5">
+            <label 
+                class="block text-xs font-bold mb-1" 
+                for="material-id"
+            >
+                Identificador
+            </label>
+            <input 
+                class="input w-full"
+                type="text" 
+                name="material-id" 
+                id="material-id" 
+                placeholder="1254ac"
+                formControlName="materialId"
+            >
+            @if (formUtils.isValidField(materialForm, 'materialId')) {
+                <i class="text-warning font-bold text-xs">
+                  {{ formUtils.getFildError(materialForm, 'materialId') }}
+                </i>
+            }
+        </div>
+        <div>
+            <button 
+                class="btn w-full"
+                type="button" 
+                aria-label="crear-material"
+                (click)="onSendMaterial()"
+            >
+                @if (materialEdit() != null) {
+                    Editar
+                }@else {
+                    Crear
+                }
+            </button>
+        </div>
+    </form>
+</div>

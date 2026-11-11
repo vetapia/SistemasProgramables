@@ -1,0 +1,108 @@
+<section>
+    @if (errorMessage()) {
+        <div role="alert" class="alert alert-error mb-4">
+            <span>{{ errorMessage() }}</span>
+        </div>
+    }
+
+    <div class="bg-base-300 rounded-box shadow-md">
+        <div class="flex justify-between p-2 items-center">
+            <span class="text-sm uppercase font-semibold opacity-60 ml-5">
+                Materiales
+            </span>
+            @if (!isStudent()) {
+                <button 
+                    class="btn"
+                    type="button" 
+                    aria-label="crear-material"
+                    (click)="showCreateMaterial.set(true)"    
+                >
+                    Añadir
+                </button>
+            }
+        </div>
+        <ul class="list">
+            @if (materialResource.isLoading()) {
+                <li class="list-row">
+                    <span class="text-sm opacity-60">Cargando materiales...</span>
+                </li>
+            } @else if (materialResource.error()) {
+                <li class="list-row">
+                    <span class="text-sm text-error">No se pudieron cargar los materiales.</span>
+                </li>
+            } @else if (materialResource.value()?.items?.length === 0) {
+                <li class="list-row">
+                    <span class="text-sm opacity-60">No hay materiales registrados.</span>
+                </li>
+            } @else {
+                @for (material of materialResource.value()?.items; track material.id) {
+                    <li class="list-row">
+                    <div>
+                        <img 
+                            class="size-10 rounded-box object-cover" 
+                            alt="Material de laboratorio" 
+                            src="/material-placeholder.jpg"
+                        />
+                    </div>
+                    <div>
+                        <div>{{material.name}}</div>
+                        <div class="text-xs uppercase font-semibold opacity-60">
+                            {{material.materialUid}}
+                        </div>
+                    </div>
+                    @if (!isStudent()) {
+                        <button 
+                            type="button" 
+                            class="btn btn-square btn-ghost"
+                            aria-label="editar-material"
+                            (click)="handlerEdit(material)"
+                        >
+                            <svg lucidePencil size="22"></svg>
+                        </button>
+                        <button 
+                            type="button"
+                            class="btn btn-square btn-ghost"
+                            aria-label="eliminar-material"    
+                        >
+                            <svg lucideTrash size="22"></svg>
+                        </button>
+                    }
+                </li>
+                }
+            }
+        </ul>
+    </div>
+    <div class="w-full flex justify-center p-2 items-center mt-3">
+        @if (materialResource.hasValue() && materialResource.value()?.totalCount) {
+            <pagination 
+                [itemsPagination]="materialResource.value()"
+                [isLoading]="materialResource.isLoading()"
+            />
+        }
+    </div>
+</section>
+
+@if (showCreateMaterial() && !isStudent()) {
+    @defer (on immediate) {
+        <rigth-slide
+            (closeSlide)="showCreateMaterial.set(false)"
+        >
+            <material-form
+                (successAction)="onCreateMaterial($event)"
+            />
+        </rigth-slide>
+    }
+}
+
+@if (showEditMaterial() && !isStudent()) {
+    @defer (on immediate) {
+        <rigth-slide
+            (closeSlide)="showEditMaterial.set(false)"
+        >
+            <material-form
+                [materialEdit]="materialToEdit()"
+                (successAction)="onEditMaterial($event)"
+            />
+        </rigth-slide>
+    }
+}

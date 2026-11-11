@@ -1,0 +1,86 @@
+<div>
+    <form [formGroup]="groupForm" (ngSubmit)="onSendGroup()">
+        <div class="mb-8">
+            <h1 class="font-bold">
+                @if (groupEdit() != null) {
+                    Editar
+                } @else {
+                    Crear
+                }
+            </h1>
+        </div>
+        <div class="mb-5">
+            <label
+                class="block text-xs font-bold mb-1"
+                for="group-name"
+            >
+                Nombre
+            </label>
+            <input
+                class="input w-full"
+                type="text"
+                id="group-name"
+                placeholder="7C"
+                formControlName="name"
+            >
+            @if (formUtils.isValidField(groupForm, 'name')) {
+                <i class="text-warning font-bold text-xs">
+                    {{ formUtils.getFildError(groupForm, 'name') }}
+                </i>
+            }
+        </div>
+        <div class="mb-5">
+            <label
+                class="block text-xs font-bold mb-1"
+                for="group-period"
+            >
+                Periodo
+            </label>
+            <input
+                class="input w-full"
+                type="text"
+                id="group-period"
+                placeholder="ENERO-JUNIO-2026"
+                formControlName="period"
+            >
+            @if (formUtils.isValidField(groupForm, 'period')) {
+                <i class="text-warning font-bold text-xs">
+                    {{ formUtils.getFildError(groupForm, 'period') }}
+                </i>
+            }
+        </div>
+        <div class="mb-5">
+            <label
+                class="block text-xs font-bold mb-1"
+                for="group-schedule"
+            >
+                Horario
+            </label>
+            <input
+                class="input w-full"
+                type="text"
+                id="group-schedule"
+                placeholder="10:30-12:15"
+                formControlName="schedule"
+            >
+            @if (formUtils.isValidField(groupForm, 'schedule')) {
+                <i class="text-warning font-bold text-xs">
+                    {{ formUtils.getFildError(groupForm, 'schedule') }}
+                </i>
+            }
+        </div>
+        <div>
+            <button
+                class="btn w-full"
+                type="submit"
+                aria-label="guardar-grupo"
+            >
+                @if (groupEdit() != null) {
+                    Editar
+                } @else {
+                    Crear
+                }
+            </button>
+        </div>
+    </form>
+</div>

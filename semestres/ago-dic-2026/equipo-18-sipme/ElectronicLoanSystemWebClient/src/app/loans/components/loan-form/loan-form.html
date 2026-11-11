@@ -1,0 +1,44 @@
+<div>
+  <form [formGroup]="loanForm">
+    <div class="mb-8">
+      <h1 class="font-bold text-lg">Registrar Préstamo</h1>
+    </div>
+
+    <div class="mb-5">
+      <student-input-find
+        [label]="'Estudiante'"
+        [displayFn]="showStudent"
+        (selectedAction)="onStudentChange($event)"
+      />
+      @if (formUtils.isValidField(loanForm, 'userId')) {
+        <i class="text-warning font-bold text-xs">
+          Debes seleccionar un estudiante.
+        </i>
+      }
+    </div>
+
+    <div class="mb-5">
+      <material-input-find
+        [label]="'Material'"
+
+        (selectedAction)="onMaterialChange($event)"
+      />
+      @if (formUtils.isValidField(loanForm, 'materialId')) {
+        <i class="text-warning font-bold text-xs">
+          Debes seleccionar un material.
+        </i>
+      }
+    </div>
+
+    <div>
+      <button
+        class="btn btn-primary w-full"
+        type="button"
+        aria-label="guardar-prestamo"
+        (click)="onSendLoan()"
+      >
+        Guardar Préstamo
+      </button>
+    </div>
+  </form>
+</div>

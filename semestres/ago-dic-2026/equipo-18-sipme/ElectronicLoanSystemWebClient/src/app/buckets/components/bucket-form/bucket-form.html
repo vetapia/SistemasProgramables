@@ -1,0 +1,135 @@
+<div>
+  <form [formGroup]="bucketForm" (ngSubmit)="onSendBucket()">
+    <div class="mb-6">
+      <h1 class="font-bold text-lg">
+        @if (bucketEdit() != null) {
+          Editar Cajón
+        } @else {
+          Crear Cajón
+        }
+      </h1>
+      <p class="text-xs text-base-content/60 mt-1">
+        @if (bucketEdit() != null) {
+          Modifica los datos del cajón seleccionado.
+        } @else {
+          Registra un nuevo cajón y asigna materiales en un solo paso.
+        }
+      </p>
+    </div>
+
+    <!-- Número de Cajón -->
+    <div class="mb-4">
+      <label class="block text-xs font-bold mb-1" for="bucket-number">
+        Número de Cajón
+      </label>
+      <input
+        class="input w-full"
+        type="number"
+        min="1"
+        id="bucket-number"
+        placeholder="1"
+        formControlName="bucketNumber"
+      />
+      @if (formUtils.isValidField(bucketForm, 'bucketNumber')) {
+        <i class="text-warning font-bold text-xs">
+          {{ formUtils.getFildError(bucketForm, 'bucketNumber') }}
+        </i>
+      }
+    </div>
+
+    <!-- Nombre del Cajón -->
+    <div class="mb-5">
+      <label class="block text-xs font-bold mb-1" for="bucket-name">
+        Nombre del Cajón
+      </label>
+      <input
+        class="input w-full"
+        type="text"
+        id="bucket-name"
+        placeholder="Caja de Resistencias"
+        formControlName="name"
+      />
+      @if (formUtils.isValidField(bucketForm, 'name')) {
+        <i class="text-warning font-bold text-xs">
+          {{ formUtils.getFildError(bucketForm, 'name') }}
+        </i>
+      }
+    </div>
+
+    <!-- Sección de Materiales (solo en creación) -->
+    @if (bucketEdit() == null) {
+      <div class="divider text-xs opacity-60 my-4">Materiales Iniciales</div>
+
+      <div class="mb-4">
+        <material-input-find
+          [label]="'Buscar y añadir material'"
+          [withoutBucket]="true"
+          [clearOnSelect]="true"
+          (selectedAction)="onMaterialSelected($event)"
+        />
+        <p class="text-[11px] text-base-content/60 mt-1">
+          Busca y haz click en un material para agregarlo a la lista de pendientes.
+        </p>
+      </div>
+
+      <!-- Lista de materiales pendientes de añadir -->
+      <div class="mb-6">
+        <div class="flex items-center justify-between mb-2">
+          <span class="text-xs font-bold uppercase tracking-wider text-base-content/70">
+            Materiales a agregar ({{ pendingMaterials().length }})
+          </span>
+          @if (pendingMaterials().length > 0) {
+            <button
+              type="button"
+              class="btn btn-ghost btn-xs text-error"
+              (click)="pendingMaterials.set([])"
+            >
+              Limpiar todos
+            </button>
+          }
+        </div>
+
+        @if (pendingMaterials().length > 0) {
+          <div class="space-y-2 max-h-52 overflow-y-auto pr-1">
+            @for (mat of pendingMaterials(); track mat.id) {
+              <div
+                class="flex items-center justify-between p-2.5 rounded-lg bg-base-200 border border-base-300 transition-colors"
+              >
+                <div class="flex flex-col min-w-0 mr-2">
+                  <span class="text-xs font-semibold truncate">{{ mat.name }}</span>
+                  <span class="text-[11px] text-base-content/60 font-mono">{{ mat.materialUid }}</span>
+                </div>
+                <button
+                  type="button"
+                  class="btn btn-ghost btn-xs btn-circle text-error hover:bg-error/20"
+                  (click)="removePendingMaterial(mat.id)"
+                  title="Quitar de pendientes"
+                  aria-label="Quitar de pendientes"
+                >
+                  <svg lucideX size="15"></svg>
+                </button>
+              </div>
+            }
+          </div>
+        } @else {
+          <div class="p-4 rounded-lg border border-dashed border-base-300 text-center">
+            <p class="text-xs text-base-content/50">
+              No hay materiales pendientes de añadir. Puedes seleccionar algunos arriba o agregarlos más tarde.
+            </p>
+          </div>
+        }
+      </div>
+    }
+
+    <!-- Botón Guardar -->
+    <div>
+      <button class="btn btn-primary w-full" type="submit" aria-label="guardar-cajon">
+        @if (bucketEdit() != null) {
+          Guardar Cambios
+        } @else {
+          Crear Cajón @if (pendingMaterials().length > 0) { (con {{ pendingMaterials().length }} materiales) }
+        }
+      </button>
+    </div>
+  </form>
+</div>
