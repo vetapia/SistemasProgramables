@@ -1,0 +1,12 @@
+# Ejemplo local Windows. Ajustar rutas a la instalacion real.
+listener 1883 0.0.0.0
+allow_anonymous false
+password_file C:/mosquitto/config/passwd
+acl_file C:/mosquitto/config/aclfile
+persistence true
+persistence_location C:/mosquitto/data/
+log_type error
+log_type warning
+log_type notice
+
+# No exponer el broker a Internet sin TLS, autenticacion fuerte y firewall.

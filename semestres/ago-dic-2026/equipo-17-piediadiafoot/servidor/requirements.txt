@@ -1,0 +1,4 @@
+numpy
+ultralytics
+opencv-python
+paho-mqtt>=2.0

@@ -1,0 +1,19 @@
+# ACL de ejemplo para Vision Dia Foot.
+# Mantener allow_anonymous false y proteger el archivo passwd.
+
+user esp32_user
+topic read proyecto/actuador/cmd
+topic read proyecto/ia/decision
+topic read proyecto/camara/estado
+topic write proyecto/sensores/lectura
+topic write proyecto/actuador/estado
+
+user vision_user
+topic read proyecto/sensores/lectura
+topic read proyecto/actuador/estado
+topic read proyecto/ia/decision
+topic read proyecto/camara/estado
+topic read proyecto/camara/cmd
+topic write proyecto/actuador/cmd
+topic write proyecto/ia/decision
+topic write proyecto/camara/estado

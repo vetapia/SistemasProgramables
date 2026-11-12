@@ -1,0 +1,42 @@
+
+# ==========================================
+# PIE DIAFOOT - Archivos que Git debe ignorar
+# ==========================================
+
+# Archivos temporales de Python
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Entornos virtuales de Python
+.venv/
+venv/
+env/
+
+# Archivos y carpetas de PlatformIO
+.pio/
+
+# Dependencias de interfaces web
+node_modules/
+
+# Variables de entorno y credenciales
+.env
+.env.*
+!.env.example
+**/serviceAccountKey.json
+
+# Archivos compilados
+*.hex
+*.bin
+*.elf
+
+# Pesos de modelos de inteligencia artificial
+*.pt
+
+# Archivos de registro
+*.log
+
+# Archivos temporales de Windows
+Thumbs.db
+desktop.ini
+.DS_Store
