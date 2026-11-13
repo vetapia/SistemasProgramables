@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<!--
+============================================
+Proyecto:  BikeSafe - Candado inteligente portatil
+Archivo:   interfaz/index.html
+Objetivo:  Dashboard en tiempo real: estado del candado, grafica
+           historica de sensores, alertas y fotos analizadas por la IA
+Equipo:    Oscar Sandoval Cabrera (23240457),
+           Diego Josue Talamantes Santiago (23240355)
+Materia:   Sistemas Programables - ISC TecNM Leon
+Semestre:  ago-dic-2026
+============================================
+Uso: abrir con un servidor local (ej. "python -m http.server" en esta
+carpeta y entrar a http://localhost:8000). Con ?demo=1 muestra datos
+de ejemplo sin Firebase.
+-->
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>BikeSafe · Dashboard</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<style>
+  :root { --azul:#1F4E79; --azul2:#DEEAF6; --verde:#16A34A; --rojo:#DC2626; --ambar:#D97706; --gris:#6B7280; --fondo:#F5F7FA; }
+  * { box-sizing:border-box; }
+  body { margin:0; font-family:system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif; background:var(--fondo); color:#1B2A3A; }
+  header { background:var(--azul); color:#fff; padding:14px 22px; display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:8px; }
+  header h1 { margin:0; font-size:20px; }
+  header small { opacity:.8; }
+  #conexion { font-size:13px; padding:4px 10px; border-radius:20px; background:rgba(255,255,255,.15); }
+  main { max-width:1200px; margin:0 auto; padding:18px; display:grid; gap:16px; grid-template-columns:repeat(12,1fr); }
+  .card { background:#fff; border-radius:12px; padding:16px; box-shadow:0 1px 3px rgba(0,0,0,.08); }
+  .card h2 { margin:0 0 10px; font-size:14px; color:var(--azul); text-transform:uppercase; letter-spacing:.04em; }
+  .s3 { grid-column:span 3; } .s4 { grid-column:span 4; } .s8 { grid-column:span 8; } .s12 { grid-column:span 12; }
+  @media (max-width:900px){ .s3,.s4,.s8 { grid-column:span 12; } }
+  .estado { font-size:30px; font-weight:700; }
+  .LIBRE { color:var(--verde); } .ASEGURADA { color:var(--azul); } .ALARMA { color:var(--rojo); }
+  .valor { font-size:28px; font-weight:700; } .unidad { font-size:14px; color:var(--gris); }
+  .sub { font-size:12px; color:var(--gris); margin-top:4px; }
+  #aviso { grid-column:span 12; background:#FFF7E6; border:1px solid #F5C26B; color:#7A4B00; border-radius:10px; padding:12px 14px; display:none; }
+  table { width:100%; border-collapse:collapse; font-size:14px; }
+  th { text-align:left; background:var(--azul); color:#fff; padding:6px 8px; font-weight:600; }
+  td { padding:6px 8px; border-bottom:1px solid #EEF1F5; }
+  tr:nth-child(even) td { background:#F7FAFD; }
+  .fotos { display:grid; grid-template-columns:repeat(auto-fill,minmax(180px,1fr)); gap:12px; }
+  .foto { border:1px solid #E5E9F0; border-radius:10px; overflow:hidden; background:#fff; }
+  .foto img { width:100%; display:block; aspect-ratio:4/3; object-fit:cover; background:#222; }
+  .foto div { padding:8px; font-size:12px; }
+  .chip { display:inline-block; padding:2px 8px; border-radius:12px; font-size:11px; font-weight:700; color:#fff; }
+  .persona { background:var(--rojo); } .sin_persona { background:var(--verde); }
+  .vacio { color:var(--gris); font-size:13px; }
+</style>
+</head>
+<body>
+<header>
+  <div><h1>🚲 BikeSafe · Panel del candado</h1><small>Equipo 13 · Sistemas Programables · TecNM León</small></div>
+  <div style="display:flex;gap:8px;align-items:center">
+    <span id="conexion">Conectando…</span>
+    <button id="sesion" style="display:none;border:0;border-radius:20px;padding:5px 12px;cursor:pointer;font-weight:600"></button>
+  </div>
+</header>
+<main>
+  <div id="aviso"></div>
+
+  <section class="card s3"><h2>Estado</h2><div id="estado" class="estado">—</div><div class="sub" id="actualizado">sin datos</div></section>
+  <section class="card s3"><h2>Distancia (HC-SR04)</h2><div><span class="valor" id="distancia">—</span> <span class="unidad">cm</span></div><div class="sub">Alguien cerca si &lt; 50 cm</div></section>
+  <section class="card s3"><h2>Movimiento (MPU6050)</h2><div><span class="valor" id="movimiento">—</span> <span class="unidad">g</span></div><div class="sub">Toque si &gt; 0.18 g · inclinación <span id="inclinacion">—</span>°</div></section>
+  <section class="card s3"><h2>Última decisión IA</h2><div class="valor" id="ultima_ia">—</div><div class="sub" id="ultima_alerta">sin alertas</div></section>
+
+  <section class="card s8"><h2>Histórico de sensores</h2><canvas id="grafica" height="120"></canvas></section>
+  <section class="card s4"><h2>Alertas recientes</h2><table><thead><tr><th>Hora</th><th>Alerta</th></tr></thead><tbody id="alertas"><tr><td colspan="2" class="vacio">Sin alertas</td></tr></tbody></table></section>
+
+  <section class="card s12"><h2>Fotos analizadas por la IA (OpenCV · YuNet)</h2><div class="fotos" id="fotos"><span class="vacio">Todavía no hay fotos</span></div></section>
+</main>
+
+<script type="module">
+import { firebaseConfig } from "./firebase-config.js";
+
+const $ = (id) => document.getElementById(id);
+const hora = (d) => d ? d.toLocaleTimeString("es-MX", { hour: "2-digit", minute: "2-digit", second: "2-digit" }) : "—";
+const fmt = (v, n = 1) => (v === null || v === undefined || isNaN(v)) ? "—" : Number(v).toFixed(n);
+
+const grafica = !window.Chart ? null : new Chart($("grafica"), {
+  type: "line",
+  data: { labels: [], datasets: [
+    { label: "Distancia (cm)", data: [], borderColor: "#1F4E79", backgroundColor: "#1F4E79", yAxisID: "y", tension: .3, pointRadius: 2 },
+    { label: "Movimiento (g)", data: [], borderColor: "#D97706", backgroundColor: "#D97706", yAxisID: "y1", tension: .3, pointRadius: 2 },
+  ]},
+  options: { animation: false, interaction: { mode: "index", intersect: false },
+    scales: { y: { position: "left", title: { display: true, text: "cm" }, beginAtZero: true },
+              y1: { position: "right", title: { display: true, text: "g" }, beginAtZero: true, grid: { drawOnChartArea: false } } } },
+});
+
+function pintarEstado(e) {
+  $("estado").textContent = e.estado || "—";
+  $("estado").className = "estado " + (e.estado || "");
+  $("distancia").textContent = fmt(e.distancia);
+  $("movimiento").textContent = fmt(e.movimiento, 2);
+  $("inclinacion").textContent = fmt(e.inclinacion);
+  $("ultima_ia").textContent = e.ultima_ia ? `${e.ultima_ia === "persona" ? "Persona" : "Nadie"} ${fmt((e.ultima_confianza || 0) * 100, 0)}%` : "—";
+  $("ultima_ia").style.color = e.ultima_ia === "persona" ? "var(--rojo)" : "var(--verde)";
+  $("ultima_alerta").textContent = e.ultima_alerta || "sin alertas";
+  $("actualizado").textContent = "Actualizado " + hora(e.actualizado);
+}
+function pintarLecturas(lista) {          // lista: de la mas vieja a la mas nueva
+  if (!grafica) return;                   // sin internet no carga Chart.js
+  grafica.data.labels = lista.map((l) => hora(l.ts));
+  grafica.data.datasets[0].data = lista.map((l) => l.distancia);
+  grafica.data.datasets[1].data = lista.map((l) => l.movimiento);
+  grafica.update();
+}
+function pintarAlertas(lista) {
+  $("alertas").innerHTML = lista.length ? lista.map((a) =>
+    `<tr><td>${hora(a.ts)}</td><td>${a.texto}</td></tr>`).join("") : '<tr><td colspan="2" class="vacio">Sin alertas</td></tr>';
+}
+function pintarFotos(lista) {
+  $("fotos").innerHTML = lista.length ? lista.map((f) => `
+    <div class="foto">
+      ${f.imagen ? `<img src="data:image/jpeg;base64,${f.imagen}" alt="foto analizada">` : '<img alt="">'}
+      <div><span class="chip ${f.deteccion}">${f.deteccion === "persona" ? "PERSONA" : "SIN PERSONA"} ${fmt(f.confianza * 100, 0)}%</span><br>
+      ${f.nivel || ""}: ${f.motivo || ""}<br>Acción: <b>${f.accion}</b> · ${hora(f.ts)}</div>
+    </div>`).join("") : '<span class="vacio">Todavía no hay fotos</span>';
+}
+
+// ---------- modo demo (sin Firebase) ----------
+// Foto real de su camara (GC0308) ya analizada por servidor/ia/detector.py
+const FOTO_DEMO = "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";
+function demo() {
+  $("conexion").textContent = "Modo demo (datos de ejemplo)";
+  const ahora = Date.now(), ts = (s) => new Date(ahora - s * 1000);
+  const lect = Array.from({ length: 30 }, (_, i) => ({ ts: ts((30 - i) * 5),
+    distancia: i > 22 ? 25 + Math.random() * 10 : 120 + Math.random() * 30, movimiento: i === 25 ? 0.42 : Math.random() * 0.06 }));
+  pintarLecturas(lect);
+  pintarEstado({ estado: "ASEGURADA", distancia: 28.4, movimiento: 0.03, inclinacion: 1.2, ultima_ia: "persona",
+                 ultima_confianza: 0.89, ultima_alerta: "IA: persona detectada junto a la bici", actualizado: new Date() });
+  pintarAlertas([{ ts: ts(5), texto: "IA: persona detectada junto a la bici" }, { ts: ts(9), texto: "Alguien cerca de la bici" },
+                 { ts: ts(40), texto: "AVISO: Movimiento (1 de 4)" }]);
+  pintarFotos([{ deteccion: "persona", confianza: 0.89, nivel: "PRESENCIA", motivo: "Alguien a 28 cm", accion: "alerta_ia", ts: ts(5), imagen: FOTO_DEMO },
+               { deteccion: "sin_persona", confianza: 0.12, nivel: "AVISO", motivo: "Movimiento (1 de 4)", accion: "ninguna", ts: ts(40) }]);
+}
+
+// ---------- Firebase en tiempo real ----------
+async function enVivo() {
+  const { initializeApp } = await import("https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js");
+  const { getFirestore, doc, collection, query, orderBy, limit, onSnapshot } =
+    await import("https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js");
+  const { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged } =
+    await import("https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js");
+  const app = initializeApp(firebaseConfig);
+  const db = getFirestore(app);
+  const auth = getAuth(app);
+  const raiz = ["proyectos", "bikesafe"];
+  const fecha = (x) => (x && x.toDate) ? x.toDate() : x;
+  const ultimos = (col, n) => query(collection(db, ...raiz, col), orderBy("ts", "desc"), limit(n));
+  const datos = (snap) => snap.docs.map((d) => { const v = d.data(); return { ...v, ts: fecha(v.ts) }; });
+  let cancelar = [];
+
+  // Solo los integrantes del equipo pueden ver los datos (reglas de
+  // Firestore por UID). Las fotos de personas NO son publicas.
+  onAuthStateChanged(auth, (usuario) => {
+    cancelar.forEach((f) => f()); cancelar = [];
+    const boton = $("sesion");
+    boton.style.display = "inline-block";
+    if (!usuario) {
+      $("conexion").textContent = "Sin sesión";
+      boton.textContent = "Iniciar sesión con Google";
+      boton.onclick = () => signInWithPopup(auth, new GoogleAuthProvider()).catch((e) => aviso("No se pudo iniciar sesión: " + e.message));
+      aviso("Inicien sesión con su cuenta de Google del equipo para ver el panel. Los datos y las fotos son privados.");
+      return;
+    }
+    $("aviso").style.display = "none";
+    boton.textContent = "Salir (" + (usuario.displayName || usuario.email) + ")";
+    boton.onclick = () => signOut(auth);
+    const error = (e) => {
+      $("conexion").textContent = "Sin permiso";
+      aviso(e.code === "permission-denied"
+        ? "Tu cuenta no tiene permiso. Pásale este UID a quien administra el proyecto para agregarlo a las reglas: " + usuario.uid
+        : "No pude leer Firestore: " + e.message);
+    };
+    cancelar.push(onSnapshot(doc(db, ...raiz, "estado", "actual"), (s) => {
+      $("conexion").textContent = "● En vivo (Firestore)";
+      if (s.exists()) { const v = s.data(); pintarEstado({ ...v, actualizado: fecha(v.actualizado) }); }
+    }, error));
+    cancelar.push(onSnapshot(ultimos("lecturas", 40), (s) => pintarLecturas(datos(s).reverse()), error));
+    cancelar.push(onSnapshot(ultimos("alertas", 8), (s) => pintarAlertas(datos(s)), error));
+    cancelar.push(onSnapshot(ultimos("eventos_ia", 8), (s) => pintarFotos(datos(s)), error));
+  });
+}
+
+function aviso(texto) { $("aviso").style.display = "block"; $("aviso").textContent = texto; }
+
+const sinConfig = firebaseConfig.projectId === "PEGA_AQUI";
+if (new URLSearchParams(location.search).has("demo")) {
+  demo();
+} else if (sinConfig) {
+  demo();
+  aviso("Falta llenar interfaz/firebase-config.js con los datos de su proyecto de Firebase. Mientras, se muestran datos de ejemplo.");
+} else {
+  enVivo().catch((e) => { aviso("No pude cargar Firebase: " + e.message); });
+}
+</script>
+</body>
+</html>
