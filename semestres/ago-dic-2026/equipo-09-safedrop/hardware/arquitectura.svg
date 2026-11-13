@@ -1,0 +1,46 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1100" height="670" viewBox="0 0 1100 670" role="img" aria-labelledby="title desc">
+<title id="title">Arquitectura SafeDrop</title>
+<desc id="desc">Dos ESP32: la ESP32-S3 con camara envia imagenes RGB565 por TCP a Python con OpenCV y lectura QR; la ESP32 de control publica PIR, LDR, HC-SR04 y datos HX711 tras su calibracion, y controla rele, SG90 y buzzer por MQTT. Firebase, IA real y dashboard estan pendientes.</desc>
+<rect width="1100" height="670" rx="26" fill="#f8fafc"/>
+<text x="550" y="56" font-family="Arial,sans-serif" font-weight="700" font-size="30" text-anchor="middle" fill="#0f172a">SafeDrop · Arquitectura del prototipo</text>
+<text x="550" y="87" font-family="Arial,sans-serif" font-size="16" text-anchor="middle" fill="#475569">Azul: probado | Gris: planeado / integración pendiente</text>
+<defs><marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M 0 0 L 10 5 L 0 10 z" fill="#2563eb"/></marker><marker id="arrowgray" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M 0 0 L 10 5 L 0 10 z" fill="#94a3b8"/></marker></defs>
+<rect x="42" y="142" width="280" height="116" rx="15" fill="#dbeafe" stroke="#2563eb" stroke-width="2"/>
+<text x="182" y="178" text-anchor="middle" font-family="Arial" font-size="20" font-weight="bold" fill="#1e3a8a">ESP32-S3 · OV3660</text>
+<text x="182" y="208" text-anchor="middle" font-family="Arial" font-size="16" fill="#1e40af">Captura RGB565 160×120</text>
+<text x="182" y="235" text-anchor="middle" font-family="Arial" font-size="14" fill="#1e40af">Visión — probado</text>
+<rect x="410" y="142" width="283" height="116" rx="15" fill="#dbeafe" stroke="#2563eb" stroke-width="2"/>
+<text x="551" y="178" text-anchor="middle" font-family="Arial" font-size="20" font-weight="bold" fill="#1e3a8a">Servidor Python · PC</text>
+<text x="551" y="208" text-anchor="middle" font-family="Arial" font-size="16" fill="#1e40af">OpenCV + pyzbar · QR</text>
+<text x="551" y="235" text-anchor="middle" font-family="Arial" font-size="14" fill="#1e40af">QR probado; IA real pendiente</text>
+<path d="M322 202 H408" stroke="#2563eb" stroke-width="3" fill="none" marker-end="url(#arrow)"/>
+<text x="365" y="187" font-family="Arial" font-size="14" text-anchor="middle" fill="#0f172a">TCP</text>
+<rect x="775" y="142" width="282" height="116" rx="15" fill="#e2e8f0" stroke="#94a3b8" stroke-width="2"/>
+<text x="916" y="180" text-anchor="middle" font-family="Arial" font-size="20" font-weight="bold" fill="#334155">Firebase + Web</text>
+<text x="916" y="208" text-anchor="middle" font-family="Arial" font-size="16" fill="#475569">Historial y dashboard</text>
+<text x="916" y="235" text-anchor="middle" font-family="Arial" font-size="14" fill="#64748b">Pendiente</text>
+<path d="M694 202 H774" stroke="#94a3b8" stroke-dasharray="9 6" stroke-width="3" fill="none" marker-end="url(#arrowgray)"/>
+<text x="733" y="187" font-family="Arial" font-size="14" text-anchor="middle" fill="#64748b">futuro</text>
+<rect x="415" y="325" width="273" height="95" rx="15" fill="#dbeafe" stroke="#2563eb" stroke-width="2"/>
+<text x="552" y="362" text-anchor="middle" font-family="Arial" font-size="22" font-weight="bold" fill="#1e3a8a">Broker Mosquitto</text>
+<text x="552" y="393" text-anchor="middle" font-family="Arial" font-size="16" fill="#1e40af">MQTT · Puerto 1883</text>
+<path d="M551 258 V324" stroke="#94a3b8" stroke-dasharray="9 6" stroke-width="3" marker-end="url(#arrowgray)"/>
+<text x="570" y="295" font-family="Arial" font-size="13" fill="#64748b">decisión pendiente</text>
+<rect x="406" y="494" width="291" height="120" rx="15" fill="#dbeafe" stroke="#2563eb" stroke-width="2"/>
+<text x="552" y="530" text-anchor="middle" font-family="Arial" font-size="20" font-weight="bold" fill="#1e3a8a">ESP32 de control</text>
+<text x="552" y="561" text-anchor="middle" font-family="Arial" font-size="16" fill="#1e40af">MicroPython 1.28</text>
+<text x="552" y="590" text-anchor="middle" font-family="Arial" font-size="14" fill="#1e40af">Sensores y actuadores</text>
+<path d="M552 421 V493" stroke="#2563eb" stroke-width="3" fill="none" marker-end="url(#arrow)"/>
+<path d="M571 494 V423" stroke="#2563eb" stroke-width="3" fill="none" marker-end="url(#arrow)"/>
+<rect x="48" y="493" width="280" height="120" rx="15" fill="#f1f5f9" stroke="#64748b" stroke-width="2"/>
+<text x="188" y="530" text-anchor="middle" font-family="Arial" font-size="20" font-weight="bold" fill="#334155">Entradas</text>
+<text x="188" y="563" text-anchor="middle" font-family="Arial" font-size="16" fill="#475569">PIR GPIO27 · LDR GPIO34</text>
+<text x="188" y="590" text-anchor="middle" font-family="Arial" font-size="14" fill="#475569">HC-SR04 probado · HX711 recibido</text>
+<path d="M329 553 H405" stroke="#2563eb" stroke-width="3" marker-end="url(#arrow)"/>
+<rect x="784" y="493" width="273" height="120" rx="15" fill="#f1f5f9" stroke="#64748b" stroke-width="2"/>
+<text x="920" y="530" text-anchor="middle" font-family="Arial" font-size="20" font-weight="bold" fill="#334155">Salidas</text>
+<text x="920" y="561" text-anchor="middle" font-family="Arial" font-size="16" fill="#475569">Relé GPIO26 · SG90 GPIO23</text>
+<text x="920" y="590" text-anchor="middle" font-family="Arial" font-size="14" fill="#475569">Buzzer GPIO25 · Foco en caja</text>
+<path d="M698 553 H783" stroke="#2563eb" stroke-width="3" marker-end="url(#arrow)"/>
+<text x="550" y="653" text-anchor="middle" font-family="Arial" font-size="14" fill="#64748b">Equipo 09 · Alan Medina Rivas · Victor Hugo Ojeda Cabrera · Noviembre 2026</text>
+</svg>
