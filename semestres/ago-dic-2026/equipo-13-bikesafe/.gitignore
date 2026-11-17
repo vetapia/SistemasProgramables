@@ -1,0 +1,12 @@
+# Equipo 13 - BikeSafe: lo que NUNCA se sube
+servidor/serviceAccountKey.json
+servidor/*.json
+servidor/registros/
+servidor/capturas/
+__pycache__/
+*.pyc
+estado.txt
+
+# Configuracion real con WiFi y token de Telegram: solo local
+firmware/esp32/config.py
+firmware/camara/config.py
