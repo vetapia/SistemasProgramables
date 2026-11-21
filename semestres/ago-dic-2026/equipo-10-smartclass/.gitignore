@@ -1,0 +1,10 @@
+# Datos de alumnos, modelos y credenciales: nunca se suben
+servidor/datos/
+servidor/serviceAccountKey.json
+servidor/config_servidor.py
+servidor/ia/*.onnx
+firmware/config.py
+firmware/wifi.json
+*.xlsx
+__pycache__/
+*.pyc

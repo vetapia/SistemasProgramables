@@ -1,0 +1,6 @@
+opencv-python>=4.8,<5
+numpy
+paho-mqtt>=2.0
+flask
+openpyxl
+firebase-admin

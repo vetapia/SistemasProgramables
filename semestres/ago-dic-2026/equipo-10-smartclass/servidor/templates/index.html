@@ -1,0 +1,432 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SmartClass</title>
+<style>
+  :root { --bg:#f4f6fb; --card:#ffffff; --txt:#1b2333; --sub:#5d6b82; --pri:#2563eb;
+          --ok:#16a34a; --bad:#dc2626; --warn:#d97706; --hum:#0891b2; --line:#e3e8f2; }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg:#0f1420; --card:#18202f; --txt:#e8edf7; --sub:#9aa7bd; --pri:#5b8cff;
+            --ok:#34d399; --bad:#f87171; --warn:#fbbf24; --hum:#22d3ee; --line:#273247; }
+  }
+  * { box-sizing: border-box; }
+  body { margin:0; background:var(--bg); color:var(--txt);
+         font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+  header { background:var(--pri); color:#fff; padding:14px 16px; font-size:20px; font-weight:700; }
+  main { max-width:900px; margin:0 auto; padding:12px; display:grid; gap:12px; }
+  section { background:var(--card); border:1px solid var(--line); border-radius:12px; padding:14px; }
+  h2 { margin:0 0 10px; font-size:16px; }
+  .grid { display:grid; grid-template-columns:repeat(auto-fit, minmax(130px, 1fr)); gap:8px; }
+  .sensor { border:1px solid var(--line); border-radius:10px; padding:10px; }
+  .sensor small { color:var(--sub); display:block; }
+  .sensor b { font-size:22px; }
+  .viejo { opacity:.45; }
+  .on b { color:var(--ok); }
+  .nodos { display:flex; gap:14px; margin-top:10px; font-size:14px; color:var(--sub); flex-wrap:wrap; }
+  .punto { display:inline-block; width:10px; height:10px; border-radius:50%; background:var(--bad); margin-right:6px; }
+  .punto.on { background:var(--ok); }
+  button { font:inherit; border:0; border-radius:8px; padding:9px 14px; background:var(--pri); color:#fff; cursor:pointer; }
+  button.sec { background:transparent; color:var(--pri); border:1px solid var(--pri); }
+  button.peligro { background:var(--bad); }
+  button.chico { padding:5px 10px; font-size:13px; }
+  button.activo { background:var(--pri); color:#fff; }
+  a.boton { display:inline-block; text-decoration:none; font:inherit; border-radius:8px; padding:9px 14px; background:var(--pri); color:#fff; }
+  .fila { display:flex; align-items:center; justify-content:space-between; gap:8px;
+          padding:9px 0; border-bottom:1px solid var(--line); }
+  .fila:last-child { border-bottom:0; }
+  .acciones { display:flex; gap:6px; flex-wrap:wrap; }
+  .barra { display:flex; justify-content:space-between; align-items:center; gap:8px; margin-bottom:8px; flex-wrap:wrap; }
+  .vacio { color:var(--sub); font-size:14px; }
+  input { font:inherit; width:100%; padding:9px; border-radius:8px; border:1px solid var(--line);
+          background:var(--bg); color:var(--txt); margin-bottom:8px; }
+  .modal { position:fixed; inset:0; background:rgba(0,0,0,.55); display:flex; align-items:center; justify-content:center; padding:16px; }
+  .modal[hidden] { display:none; }
+  .caja { background:var(--card); border-radius:14px; padding:18px; width:100%; max-width:380px; }
+  .aviso { font-size:13px; color:var(--sub); margin-top:6px; }
+  #mensaje { position:fixed; left:50%; bottom:18px; transform:translateX(-50%); background:#222; color:#fff;
+             padding:10px 16px; border-radius:20px; font-size:14px; opacity:0; transition:opacity .25s; pointer-events:none; }
+  #mensaje.ver { opacity:1; }
+  .alerta { border:1px solid var(--line); border-left-width:5px; border-radius:8px; padding:9px 12px; margin-bottom:6px; font-size:14px; }
+  .alerta:last-child { margin-bottom:0; }
+  .al-ok { border-left-color:var(--ok); }
+  .al-info { border-left-color:var(--pri); }
+  .al-aviso { border-left-color:var(--warn); }
+  .al-peligro { border-left-color:var(--bad); }
+  #grafica svg { width:100%; height:auto; display:block; }
+  .leyenda { display:flex; gap:14px; font-size:13px; color:var(--sub); margin:6px 0; flex-wrap:wrap; }
+  .leyenda i { display:inline-block; width:12px; height:3px; margin-right:5px; vertical-align:middle; border-radius:2px; }
+  .evento small { color:var(--sub); }
+</style>
+</head>
+<body>
+<header>SmartClass</header>
+<main>
+  <section>
+    <h2>Alertas</h2>
+    <div id="alertas"></div>
+  </section>
+
+  <section>
+    <h2>Sensores y actuadores en tiempo real</h2>
+    <div class="grid" id="sensores"></div>
+    <div class="nodos" id="nodos"></div>
+  </section>
+
+  <section>
+    <div class="barra">
+      <h2 style="margin:0">Histórico de temperatura y humedad</h2>
+      <div class="acciones" id="rangos">
+        <button class="chico sec" data-h="1">1 h</button>
+        <button class="chico sec" data-h="6">6 h</button>
+        <button class="chico activo" data-h="24">24 h</button>
+      </div>
+    </div>
+    <div class="leyenda"><span><i style="background:var(--bad)"></i>Temperatura (°C)</span><span><i style="background:var(--hum)"></i>Humedad (%)</span></div>
+    <div id="grafica"></div>
+    <div class="grid" id="kpis" style="margin-top:10px"></div>
+    <div class="barra" style="margin-top:10px">
+      <span class="aviso" id="origen"></span>
+      <button class="chico sec" id="btnRecargar">Recargar desde Firebase</button>
+    </div>
+  </section>
+
+  <section>
+    <h2>Últimas decisiones de la IA</h2>
+    <div id="eventos"></div>
+  </section>
+
+  <section>
+    <h2>Última foto procesada por la IA</h2>
+    <img id="ultimaFoto" alt="" style="max-width:100%; border-radius:8px; display:none">
+    <div id="sinFoto" class="vacio">Todavía no se procesa ninguna foto.</div>
+  </section>
+
+  <section>
+    <div class="barra">
+      <h2 style="margin:0">Asistencia de hoy <span id="resumen" class="vacio"></span></h2>
+      <div class="acciones">
+        <a class="boton" href="/api/asistencia/exportar">Descargar Excel</a>
+        <button id="btnBorrarHoy" class="peligro">Borrar hoy</button>
+      </div>
+    </div>
+    <div id="hoy"></div>
+  </section>
+
+  <section>
+    <div class="barra">
+      <h2 style="margin:0">Alumnos registrados</h2>
+      <button id="btnRegistrar">Registrar alumno</button>
+    </div>
+    <div id="alumnos"></div>
+  </section>
+
+  <section>
+    <h2>Configuración de red</h2>
+    <input id="ssid" placeholder="Nombre de la red Wi-Fi" autocomplete="off">
+    <input id="clave" type="password" placeholder="Contraseña" autocomplete="off">
+    <button id="btnWifi" class="sec">Enviar a los dispositivos</button>
+    <div class="aviso">Los dispositivos se reiniciarán y se conectarán a la nueva red. Revisa bien los datos: si son incorrectos, los dispositivos abrirán su propia red de configuración.</div>
+  </section>
+</main>
+
+<div class="modal" id="modal" hidden>
+  <div class="caja">
+    <h2 id="modalTitulo">Registrar alumno</h2>
+    <p id="modalTexto"></p>
+    <div id="modalForm" hidden>
+      <input id="nombreNuevo" placeholder="Nombre del alumno" maxlength="40" autocomplete="off">
+      <div class="acciones"><button id="btnGuardar">Guardar</button><button id="btnCancelar" class="sec">Cancelar</button></div>
+    </div>
+    <div class="acciones" id="modalCerrar"><button id="btnCancelar2" class="sec">Cancelar registro</button></div>
+  </div>
+</div>
+<div id="mensaje"></div>
+
+<script>
+const $ = (s) => document.querySelector(s);
+const SENSORES = [
+  ["temp", "Temperatura", (v) => v.toFixed(0) + " °C"],
+  ["hum", "Humedad", (v) => v.toFixed(0) + " %"],
+  ["distancia", "Distancia", (v) => (v < 0 ? "—" : v.toFixed(0) + " cm")],
+  ["ir", "Sensor de la puerta", (v) => (v ? "Detecta" : "Libre")],
+  ["ir_disp", "Dispensador", (v) => (v ? "Detecta" : "Libre")],
+];
+const ACTUADORES = [["bomba", "Bomba de gel"], ["vent", "Ventilador"]];
+let formMostrado = false;
+let rangoHoras = 24;
+let ultimoDashboard = null;
+
+function aviso(texto) {
+  const m = $("#mensaje");
+  m.textContent = texto;
+  m.classList.add("ver");
+  setTimeout(() => m.classList.remove("ver"), 2600);
+}
+
+async function api(url, metodo = "GET", cuerpo = null) {
+  const opciones = { method: metodo, credentials: "same-origin", headers: {} };
+  if (cuerpo !== null) {
+    opciones.headers["Content-Type"] = "application/json";
+    opciones.body = JSON.stringify(cuerpo);
+  }
+  const r = await fetch(url, opciones);
+  let datos = {};
+  try { datos = await r.json(); } catch (e) {}
+  if (!r.ok) throw new Error(datos.error || "Error " + r.status);
+  return datos;
+}
+
+function celda(texto) { const d = document.createElement("div"); d.textContent = texto; return d; }
+function caja(titulo, valor, extra) {
+  const c = document.createElement("div");
+  c.className = "sensor" + (extra ? " " + extra : "");
+  const t = document.createElement("small"); t.textContent = titulo;
+  const v = document.createElement("b"); v.textContent = valor;
+  c.append(t, v);
+  return c;
+}
+
+/* ---------------- tiempo real ---------------- */
+function pintarSensores(e) {
+  const cont = $("#sensores");
+  cont.replaceChildren();
+  for (const [clave, titulo, formato] of SENSORES) {
+    const dato = e.sensores[clave];
+    cont.append(caja(titulo, dato ? formato(dato.valor) : "—", !dato || dato.hace_s > 20 ? "viejo" : ""));
+  }
+  for (const [clave, titulo] of ACTUADORES) {
+    const estado = (e.actuadores || {})[clave];
+    cont.append(caja(titulo, estado === "ON" ? "ENCENDIDO" : (estado === "OFF" ? "Apagado" : "—"),
+                     estado === "ON" ? "on" : (estado ? "" : "viejo")));
+  }
+  const nodos = $("#nodos");
+  nodos.replaceChildren();
+  for (const [nombre, enLinea] of Object.entries(e.nodos)) {
+    const s = document.createElement("span");
+    const p = document.createElement("span");
+    p.className = "punto" + (enLinea ? " on" : "");
+    s.append(p, document.createTextNode("Nodo " + nombre + (enLinea ? " en línea" : " sin conexión")));
+    nodos.append(s);
+  }
+}
+
+function pintarHoy(e) {
+  $("#resumen").textContent = "(" + e.hoy.length + " de " + e.alumnos.length + ")";
+  const cont = $("#hoy");
+  cont.replaceChildren();
+  if (!e.hoy.length) { const v = document.createElement("div"); v.className = "vacio"; v.textContent = "Todavía no llega nadie."; cont.append(v); return; }
+  for (const r of e.hoy) {
+    const f = document.createElement("div"); f.className = "fila";
+    f.append(celda(r.nombre), celda(r.hora));
+    cont.append(f);
+  }
+}
+
+function pintarAlumnos(e) {
+  const cont = $("#alumnos");
+  cont.replaceChildren();
+  if (!e.alumnos.length) { const v = document.createElement("div"); v.className = "vacio"; v.textContent = "No hay alumnos registrados."; cont.append(v); return; }
+  for (const a of e.alumnos) {
+    const f = document.createElement("div"); f.className = "fila";
+    const acc = document.createElement("div"); acc.className = "acciones";
+    const bEditar = document.createElement("button"); bEditar.className = "sec"; bEditar.textContent = "Editar";
+    bEditar.onclick = async () => {
+      const nuevo = prompt("Nuevo nombre:", a.nombre);
+      if (nuevo && nuevo.trim()) { try { await api("/api/alumnos/" + a.id, "PUT", { nombre: nuevo }); actualizar(); } catch (err) { aviso(err.message); } }
+    };
+    const bBorrar = document.createElement("button"); bBorrar.className = "peligro"; bBorrar.textContent = "Eliminar";
+    bBorrar.onclick = async () => {
+      if (confirm("¿Eliminar a " + a.nombre + "?")) { try { await api("/api/alumnos/" + a.id, "DELETE"); actualizar(); } catch (err) { aviso(err.message); } }
+    };
+    acc.append(bEditar, bBorrar);
+    f.append(celda(a.nombre), acc);
+    cont.append(f);
+  }
+}
+
+function pintarModal(reg) {
+  const modal = $("#modal");
+  const estado = reg.estado;
+  if (estado === "inactivo") { modal.hidden = true; formMostrado = false; return; }
+  modal.hidden = false;
+  const texto = $("#modalTexto");
+  const form = $("#modalForm");
+  const cerrar = $("#modalCerrar");
+  if (estado === "esperando") {
+    texto.textContent = "Párate frente a la cámara. El anillo se pondrá azul y, al apagarse, empezará a tomar las fotos.";
+    form.hidden = true; cerrar.hidden = false;
+  } else if (estado === "capturando") {
+    texto.textContent = "Capturando… " + reg.muestras + " de " + reg.objetivo + ". Mira a la cámara y mueve un poco la cabeza.";
+    form.hidden = true; cerrar.hidden = false;
+  } else if (estado === "listo") {
+    texto.textContent = "Listo. Escribe el nombre del alumno.";
+    form.hidden = false; cerrar.hidden = true;
+    if (!formMostrado) { $("#nombreNuevo").value = ""; $("#nombreNuevo").focus(); formMostrado = true; }
+  } else if (estado === "tiempo_agotado") {
+    texto.textContent = "No se pudo capturar el rostro a tiempo. Inténtalo de nuevo.";
+    form.hidden = true; cerrar.hidden = false;
+    $("#btnCancelar2").textContent = "Cerrar";
+  }
+  if (estado !== "tiempo_agotado") $("#btnCancelar2").textContent = "Cancelar registro";
+}
+
+async function actualizar() {
+  try {
+    const e = await api("/api/estado");
+    pintarSensores(e); pintarHoy(e); pintarAlumnos(e); pintarModal(e.registro);
+  } catch (err) { /* sin conexión momentánea */ }
+}
+
+/* ---------------- dashboard ---------------- */
+function svg(tag, atributos, texto) {
+  const el = document.createElementNS("http://www.w3.org/2000/svg", tag);
+  for (const [k, v] of Object.entries(atributos || {})) el.setAttribute(k, v);
+  if (texto !== undefined) el.textContent = texto;
+  return el;
+}
+
+function hhmm(ms) {
+  const d = new Date(ms);
+  return String(d.getHours()).padStart(2, "0") + ":" + String(d.getMinutes()).padStart(2, "0");
+}
+
+function dibujarGrafica() {
+  const cont = $("#grafica");
+  cont.replaceChildren();
+  if (!ultimoDashboard) return;
+  const ref = Date.parse(ultimoDashboard.ahora);
+  const desde = ref - rangoHoras * 3600 * 1000;
+  const pts = ultimoDashboard.historial
+    .map((h) => ({ t: Date.parse(h.t), temp: h.temperatura, hum: h.humedad }))
+    .filter((p) => !isNaN(p.t) && p.t >= desde);
+  if (pts.length < 2) {
+    const v = document.createElement("div"); v.className = "vacio";
+    v.textContent = "Aún no hay suficientes lecturas en este rango (se guarda una por minuto).";
+    cont.append(v); return;
+  }
+  const W = 500, H = 270, m = { l: 36, r: 36, t: 12, b: 28 };
+  const t0 = pts[0].t, t1 = pts[pts.length - 1].t;
+  const temps = pts.map((p) => p.temp).filter((v) => v !== undefined && v !== null);
+  const tMin = Math.floor(Math.min(...temps, 20) - 1), tMax = Math.ceil(Math.max(...temps, 32) + 1);
+  const x = (t) => m.l + ((t - t0) / Math.max(1, t1 - t0)) * (W - m.l - m.r);
+  const yT = (v) => H - m.b - ((v - tMin) / (tMax - tMin)) * (H - m.t - m.b);
+  const yH = (v) => H - m.b - (v / 100) * (H - m.t - m.b);
+  const g = svg("svg", { viewBox: "0 0 " + W + " " + H, role: "img", "aria-label": "Gráfica de temperatura y humedad" });
+  const color = (n) => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+  const lineaC = color("--line"), subC = color("--sub");
+  for (let i = 0; i <= 4; i++) {
+    const y = m.t + (i / 4) * (H - m.t - m.b);
+    g.append(svg("line", { x1: m.l, x2: W - m.r, y1: y, y2: y, stroke: lineaC, "stroke-width": 1 }));
+    g.append(svg("text", { x: m.l - 6, y: y + 4, "text-anchor": "end", "font-size": 13, fill: color("--bad") }, Math.round(tMax - (i / 4) * (tMax - tMin))));
+    g.append(svg("text", { x: W - m.r + 6, y: y + 4, "font-size": 13, fill: color("--hum") }, Math.round(100 - i * 25)));
+  }
+  for (let i = 0; i <= 3; i++) {
+    const t = t0 + (i / 3) * (t1 - t0);
+    g.append(svg("text", { x: x(t), y: H - 8, "text-anchor": i === 0 ? "start" : (i === 3 ? "end" : "middle"), "font-size": 13, fill: subC }, hhmm(t)));
+  }
+  const linea = (clave, f, col) => {
+    const puntos = pts.filter((p) => p[clave] !== undefined && p[clave] !== null)
+      .map((p) => x(p.t).toFixed(1) + "," + f(p[clave]).toFixed(1)).join(" ");
+    if (puntos) g.append(svg("polyline", { points: puntos, fill: "none", stroke: col, "stroke-width": 2, "stroke-linejoin": "round" }));
+  };
+  linea("temp", yT, color("--bad"));
+  linea("hum", yH, color("--hum"));
+  cont.append(g);
+}
+
+function pintarDashboard(d) {
+  ultimoDashboard = d;
+  // alertas
+  const al = $("#alertas"); al.replaceChildren();
+  for (const a of d.alertas) {
+    const div = document.createElement("div");
+    div.className = "alerta al-" + a.nivel; div.textContent = a.texto;
+    al.append(div);
+  }
+  // resumen
+  const r = d.resumen, k = $("#kpis"); k.replaceChildren();
+  const f = (v, u) => (v === null || v === undefined ? "—" : v + u);
+  k.append(caja("Presentes hoy", r.presentes_hoy + " de " + r.alumnos),
+           caja("Reconocimientos hoy", r.reconocimientos_hoy),
+           caja("No registrados hoy", r.no_registrados_hoy),
+           caja("Temp. mín / máx", f(r.temp_min, "") + " / " + f(r.temp_max, " °C")),
+           caja("Temp. promedio", f(r.temp_prom, " °C")));
+  $("#origen").textContent = d.firebase
+    ? "Histórico guardado en Firebase (últimas 24 h)."
+    : "Firebase desactivado: el histórico solo dura mientras el servidor está encendido.";
+  // eventos
+  const ev = $("#eventos"); ev.replaceChildren();
+  if (!d.eventos.length) { const v = document.createElement("div"); v.className = "vacio"; v.textContent = "Todavía no hay decisiones registradas."; ev.append(v); }
+  for (const e of d.eventos) {
+    const fila = document.createElement("div"); fila.className = "fila evento";
+    const izq = document.createElement("div");
+    const quien = e.deteccion === "desconocido" ? "Persona no registrada" : e.deteccion;
+    const nombre = document.createElement("b"); nombre.textContent = quien;
+    const detalle = document.createElement("small");
+    const acc = String(e.accion).includes("verde") ? "Acceso (anillo verde)" : (String(e.accion).includes("rojo") ? "Denegado (anillo rojo)" : e.accion);
+    detalle.textContent = " · " + acc + " · confianza " + Math.round((e.confianza || 0) * 100) + " %";
+    izq.append(nombre, detalle);
+    fila.append(izq, celda(String(e.t).slice(11, 19)));
+    ev.append(fila);
+  }
+  dibujarGrafica();
+}
+
+async function actualizarDashboard() {
+  try { pintarDashboard(await api("/api/dashboard")); } catch (err) { /* sin conexión momentánea */ }
+}
+
+document.querySelectorAll("#rangos button").forEach((b) => {
+  b.onclick = () => {
+    rangoHoras = Number(b.dataset.h);
+    document.querySelectorAll("#rangos button").forEach((x) => { x.className = "chico " + (x === b ? "activo" : "sec"); });
+    dibujarGrafica();
+  };
+});
+$("#btnRecargar").onclick = async () => {
+  try { const r = await api("/api/dashboard/recargar", "POST", {}); aviso("Cargado de Firebase: " + r.lecturas + " lecturas"); actualizarDashboard(); }
+  catch (err) { aviso(err.message); }
+};
+
+/* ---------------- acciones ---------------- */
+$("#btnRegistrar").onclick = async () => {
+  try { await api("/api/registro/iniciar", "POST", {}); actualizar(); } catch (err) { aviso(err.message); }
+};
+const cancelar = async () => { try { await api("/api/registro/cancelar", "POST", {}); } catch (e) {} formMostrado = false; actualizar(); };
+$("#btnCancelar").onclick = cancelar;
+$("#btnCancelar2").onclick = cancelar;
+$("#btnGuardar").onclick = async () => {
+  try { await api("/api/registro/confirmar", "POST", { nombre: $("#nombreNuevo").value }); aviso("Alumno registrado"); formMostrado = false; actualizar(); }
+  catch (err) { aviso(err.message); }
+};
+$("#btnBorrarHoy").onclick = async () => {
+  if (!confirm("¿Borrar la asistencia de HOY? No se puede deshacer.")) return;
+  try { const r = await api("/api/asistencia/hoy", "DELETE"); aviso("Registros borrados: " + r.borrados); actualizar(); }
+  catch (err) { aviso(err.message); }
+};
+$("#btnWifi").onclick = async () => {
+  const ssid = $("#ssid").value, clave = $("#clave").value;
+  if (!ssid.trim()) { aviso("Escribe el nombre de la red"); return; }
+  if (!confirm("¿Enviar la red «" + ssid + "» a los dispositivos?")) return;
+  try { await api("/api/wifi", "POST", { ssid: ssid, password: clave }); $("#clave").value = ""; aviso("Enviado"); }
+  catch (err) { aviso(err.message); }
+};
+
+function refrescarFoto() {
+  const img = $("#ultimaFoto");
+  const nueva = new Image();
+  nueva.onload = () => { img.src = nueva.src; img.style.display = "block"; $("#sinFoto").style.display = "none"; };
+  nueva.src = "/api/ultimo_frame.jpg?t=" + Date.now();
+}
+
+actualizar();
+actualizarDashboard();
+refrescarFoto();
+setInterval(actualizar, 1500);
+setInterval(actualizarDashboard, 5000);
+setInterval(refrescarFoto, 2500);
+</script>
+</body>
+</html>
