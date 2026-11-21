@@ -1,0 +1,28 @@
+{
+  "mqtt_host": "000.000.0.00",
+  "mqtt_port": 1883,
+  "mqtt_user": "vision_user",
+  "mqtt_password": "USE_YOUR_PASSWORD",
+  "client_id": "vision-dia-foot-laptop",
+
+  "camera_stream_url": "http://000.000.0.00/frame",
+  "camera_width": 320,
+  "camera_height": 240,
+  "model_path": "C:/.../best.pt",
+  "confidence": 0.35,
+  "publish_every_seconds": 1.0,
+  "frame_period_seconds": 0.05,
+  "show_window": true,
+
+  "topic_command": "proyecto/actuador/cmd",
+  "topic_sensors": "proyecto/sensores/lectura",
+  "topic_state": "proyecto/actuador/estado",
+  "topic_ia": "proyecto/ia/decision",
+  "topic_camera_command": "proyecto/camara/cmd",
+  "topic_camera_state": "proyecto/camara/estado",
+
+  "manual_motor_pulse_ms": 100,
+  "capture_directory": "capturas",
+  "capture_requires_ready": true,
+  "foot_side": "no_especificado"
+}

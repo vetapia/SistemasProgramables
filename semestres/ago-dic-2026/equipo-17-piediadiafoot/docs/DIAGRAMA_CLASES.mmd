@@ -1,0 +1,83 @@
+classDiagram
+    class VisionDiaFootController {
+      +hardware
+      +state
+      +mqtt_connected
+      +camera_ready
+      +yolo_ready
+      +handle_message(topic,payload)
+      +update(reading)
+      +_distance_analysis(distance)
+      +_emergency_stop()
+    }
+    class VisionDiaFootHAL {
+      +i2c
+      +presion
+      +distancia
+      +temperatura
+      +motor_banda
+      +ventilacion
+      +bandera
+      +buzzer
+      +lcd
+      +oled
+      +leer_sensores()
+      +actualizar_actuadores()
+      +apagar_salidas()
+    }
+    class MotorBanda {
+      +enabled
+      +stops_confirmed
+      +center_confirmed
+      +position_offset_cm
+      +solicitar_pulso(direction,duration)
+      +fijar_centro()
+      +detener()
+      +emergencia()
+      +actualizar()
+    }
+    class ReleVentilacion {
+      +encendido
+      +set_on(on)
+      +encender()
+      +apagar()
+    }
+    class IndicadorListo {
+      +hidden_angle
+      +ready_angle
+      +mostrar_listo()
+      +oculta()
+      +mover_a(angle)
+    }
+    class Buzzer {
+      +beep(duration)
+      +actualizar()
+      +apagar()
+    }
+    class SensorPresion {
+      +press_threshold
+      +release_threshold
+      +leer()
+    }
+    class SensorDistancia {
+      +leer_cm()
+    }
+    class SensorTemperatura {
+      +leer()
+    }
+    class PantallaLCD {
+      +mostrar(line1,line2)
+    }
+    class PantallaOLED {
+      +mostrar_lineas(lines)
+    }
+    VisionDiaFootController --> VisionDiaFootHAL : coordina
+    VisionDiaFootHAL *-- MotorBanda
+    VisionDiaFootHAL *-- ReleVentilacion
+    VisionDiaFootHAL *-- IndicadorListo
+    VisionDiaFootHAL *-- Buzzer
+    VisionDiaFootHAL *-- SensorPresion
+    VisionDiaFootHAL *-- SensorDistancia
+    VisionDiaFootHAL *-- SensorTemperatura
+    VisionDiaFootHAL *-- PantallaLCD
+    VisionDiaFootHAL *-- PantallaOLED
