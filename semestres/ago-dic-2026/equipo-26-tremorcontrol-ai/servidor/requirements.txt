@@ -1,0 +1,1 @@
+# Sprint 1: sin dependencias de servidor por el momento.
