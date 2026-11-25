@@ -1,0 +1,97 @@
+# Proyecto: PetCare, equipo 08.
+# Integrantes: Brandon Leonel Padilla De la Cruz (22240293); Isaac Eliseo Flores Valencia (22240324); Lidia Verenice Padilla López (22240312).
+# Objetivo: Integrar y probar los módulos del dispensador PetCare.
+
+# ============================================
+# Proyecto: PetCare — Equipo 08
+# Archivo: actuadores.py
+# Objetivo: Encapsular servo posicional, bomba por rele, buzzer.
+# Equipo: Brandon Leonel Padilla De la Cruz (22240293); Isaac Eliseo Flores Valencia (22240324); Lidia Verenice Padilla López (22240312)
+# Materia: Sistemas Programables — ISC TecNM León
+# Semestre: ago-dic-2026
+# Pines: DHT22=4, PIR=27, HX711 DT/SCK=19/18, sin flotador, servo MG995=33, bomba rele=23, buzzer=22
+# ============================================
+# PetCare - salidas seguras y con tiempos limitados.
+import config
+
+
+# Nombre historico conservado para no romper imports; tambien usado con MG995.
+class ServoSG90:
+    def __init__(self, pin=config.PIN_SERVO):
+        from machine import Pin
+        self._pin = Pin(pin, Pin.OUT, value=0)
+        self._pwm = None
+
+    def move_us(self, pulse_us):
+        from machine import PWM
+        if isinstance(pulse_us, bool) or not isinstance(pulse_us, int):
+            raise ValueError('El pulso debe ser un entero en microsegundos')
+        if not config.SERVO_MIN_PULSE_US <= pulse_us <= config.SERVO_MAX_PULSE_US:
+            raise ValueError('Pulso fuera del recorrido validado de la compuerta')
+        try:
+            if self._pwm is None:
+                duty = (pulse_us * 65535 + 10000) // 20000
+                self._pwm = PWM(self._pin, freq=50, duty_u16=duty)
+            self._pwm.duty_ns(int(pulse_us * 1000))
+        except Exception:
+            self.release()
+            raise
+
+    def release(self):
+        # Solo en parada o error: el montaje puede moverse al retirar la senal.
+        try:
+            if self._pwm is not None:
+                self._pwm.deinit()
+        finally:
+            self._pwm = None
+            self._pin.value(0)
+
+
+class PumpRelay:
+    def __init__(self, pin=config.PIN_PUMP_RELAY):
+        from machine import Pin, Timer
+        self._off_level = 1 - config.PUMP_ACTIVE_LEVEL
+        self._pin = Pin(pin, Pin.OUT, value=self._off_level)
+        self.active = False
+        self._timer = Timer(config.PUMP_TIMER_ID)
+
+    def _cutoff(self, timer):
+        # Respaldo del plazo de la FSM. En ESP32 el callback es soft.
+        self._pin.value(self._off_level)
+        self.active = False
+
+    def on(self, duration_ms=None):
+        self.off()
+        from machine import Timer
+        duration = min(5000, config.PUMP_PULSE_MS, config.PUMP_MAX_ON_MS)
+        if duration_ms is not None:
+            if isinstance(duration_ms, bool) or not isinstance(duration_ms, int):
+                raise ValueError('Duracion debe ser un entero en ms')
+            duration = min(duration, duration_ms)
+        if duration <= 0:
+            raise ValueError('Duracion de bomba invalida')
+        try:
+            self._timer.init(period=duration, mode=Timer.ONE_SHOT, callback=self._cutoff)
+            self.active = True
+            self._pin.value(config.PUMP_ACTIVE_LEVEL)
+        except Exception:
+            self.off()
+            raise
+
+    def off(self):
+        self._pin.value(self._off_level)
+        self.active = False
+        self._timer.deinit()
+
+
+class ActiveBuzzer:
+    def __init__(self, pin=config.PIN_BUZZER):
+        from machine import Pin
+        self._pin = Pin(pin, Pin.OUT, value=0)
+        self.off()
+
+    def on(self):
+        self._pin.value(1)
+
+    def off(self):
+        self._pin.value(0)
