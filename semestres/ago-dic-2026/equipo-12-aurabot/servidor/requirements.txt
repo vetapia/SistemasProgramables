@@ -1,0 +1,4 @@
+opencv-contrib-python>=4.8.0
+paho-mqtt>=2.0.0
+numpy
+firebase-admin>=6.0.0
