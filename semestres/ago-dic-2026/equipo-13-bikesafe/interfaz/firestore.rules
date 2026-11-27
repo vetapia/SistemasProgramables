@@ -1,0 +1,63 @@
+// ============================================
+// Proyecto:  BikeSafe - Candado inteligente portatil
+// Archivo:   interfaz/firestore.rules
+// Objetivo:  Reglas de seguridad de Cloud Firestore
+// Equipo:    Oscar Sandoval Cabrera (23240457),
+//            Diego Josue Talamantes Santiago (23240355)
+// Materia:   Sistemas Programables - ISC TecNM Leon
+// Semestre:  ago-dic-2026
+// ============================================
+//
+// - NADA es publico. Solo los integrantes del equipo pueden LEER,
+//   iniciando sesion con Google en el dashboard. Se identifican por su
+//   UID de Firebase (Authentication > Usuarios). Asi las fotos de
+//   personas que analiza la IA no las ve cualquiera.
+// - Desde el navegador lo UNICO que se puede escribir es un comando
+//   nuevo en proyectos/bikesafe/comandos, y solo si:
+//     * lo crea un integrante del equipo, con SU propio uid,
+//     * el comando esta en la lista permitida,
+//     * llega como "pendiente" y con la hora del servidor,
+//     * no trae campos extra.
+//   No se pueden editar ni borrar comandos (queda el historial).
+// - Todo lo demas lo escribe solo el servidor Python con su llave de
+//   cuenta de servicio (firebase-admin no pasa por estas reglas).
+// Se pegan en: consola de Firebase > Firestore Database > Reglas.
+
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function esDelEquipo() {
+      return request.auth != null && request.auth.uid in [
+        "Mb2PTewTB8N3L1G7qAefPsLuAzv2",   // Oscar Sandoval Cabrera
+        "qmVjHz5Q3XdO1ZMUaCzpm5Soh1E2"    // Diego Josue Talamantes Santiago
+      ];
+    }
+
+    function comandoValido() {
+      let d = request.resource.data;
+      return d.keys().hasOnly(["cmd", "estado", "uid", "nombre", "creado"])
+        && d.cmd in ["asegurar", "liberar", "silenciar", "foto", "buscar",
+                     "pitido", "led_prueba"]
+        && d.estado == "pendiente"
+        && d.uid == request.auth.uid
+        && d.nombre is string && d.nombre.size() < 60
+        && d.creado == request.time;
+    }
+
+    // Lectura: solo el equipo. Escritura: nadie (solo el servidor).
+    match /proyectos/bikesafe/{document=**} {
+      allow read: if esDelEquipo();
+      allow write: if false;
+    }
+
+    // Excepcion: el equipo puede CREAR comandos para el candado.
+    match /proyectos/bikesafe/comandos/{id} {
+      allow create: if esDelEquipo() && comandoValido();
+    }
+
+    // Cualquier otra ruta de la base: cerrada.
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

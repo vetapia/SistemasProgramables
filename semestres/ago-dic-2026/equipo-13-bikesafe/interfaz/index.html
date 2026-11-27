@@ -1,0 +1,320 @@
+<!DOCTYPE html>
+<!--
+============================================
+Proyecto:  BikeSafe - Candado inteligente portatil
+Archivo:   interfaz/index.html
+Objetivo:  Dashboard en tiempo real: estado del candado y de sus sensores,
+           control remoto (comandos por Firestore), historial de eventos,
+           alertas y fotos analizadas por la IA
+Equipo:    Oscar Sandoval Cabrera (23240457),
+           Diego Josue Talamantes Santiago (23240355)
+Materia:   Sistemas Programables - ISC TecNM Leon
+Semestre:  ago-dic-2026
+============================================
+Firebase en las DOS direcciones:
+  - ESCUCHA en tiempo real (onSnapshot) estado/actual, lecturas, alertas,
+    eventos, eventos_ia y comandos: cada cambio aparece solo, sin recargar.
+  - GUARDA los botones de control como documentos nuevos en "comandos".
+    El servidor Python los escucha (on_snapshot), los firma y se los manda
+    a la ESP32 por MQTT. Aqui se ve en vivo si quedaron enviados.
+Uso: doble clic en ABRIR_DASHBOARD.bat (o "python -m http.server 8000" en
+esta carpeta y entrar a http://localhost:8000). Con ?demo=1 muestra datos
+de ejemplo sin Firebase.
+-->
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>BikeSafe · Dashboard</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<style>
+  :root { --azul:#1F4E79; --azul2:#DEEAF6; --verde:#16A34A; --rojo:#DC2626; --ambar:#D97706; --morado:#7C3AED; --gris:#6B7280; --fondo:#F5F7FA; }
+  * { box-sizing:border-box; }
+  body { margin:0; font-family:system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif; background:var(--fondo); color:#1B2A3A; }
+  header { background:var(--azul); color:#fff; padding:14px 22px; display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:8px; }
+  header h1 { margin:0; font-size:20px; }
+  header small { opacity:.8; }
+  .pildora { font-size:13px; padding:4px 10px; border-radius:20px; background:rgba(255,255,255,.15); white-space:nowrap; }
+  .pildora.mal { background:#B91C1C; } .pildora.bien { background:#15803D; }
+  main { max-width:1200px; margin:0 auto; padding:18px; display:grid; gap:16px; grid-template-columns:repeat(12,1fr); }
+  .card { background:#fff; border-radius:12px; padding:16px; box-shadow:0 1px 3px rgba(0,0,0,.08); }
+  .card h2 { margin:0 0 10px; font-size:13px; color:var(--azul); text-transform:uppercase; letter-spacing:.04em; }
+  .s2 { grid-column:span 2; } .s3 { grid-column:span 3; } .s4 { grid-column:span 4; } .s5 { grid-column:span 5; } .s7 { grid-column:span 7; } .s8 { grid-column:span 8; } .s12 { grid-column:span 12; }
+  @media (max-width:980px){ .s2,.s3,.s4,.s5,.s7,.s8 { grid-column:span 6; } }
+  @media (max-width:620px){ .s2,.s3,.s4,.s5,.s7,.s8 { grid-column:span 12; } }
+  .estado { font-size:28px; font-weight:700; display:flex; align-items:center; gap:10px; }
+  .LIBRE { color:var(--verde); } .ASEGURADA { color:var(--azul); } .ALARMA { color:var(--rojo); }
+  .led { width:18px; height:18px; border-radius:50%; border:2px solid #CBD5E1; background:#E5E7EB; flex:none; }
+  .valor { font-size:26px; font-weight:700; } .unidad { font-size:14px; color:var(--gris); }
+  .sub { font-size:12px; color:var(--gris); margin-top:4px; }
+  .ok { color:var(--verde); } .malo { color:var(--rojo); }
+  #aviso { grid-column:span 12; background:#FFF7E6; border:1px solid #F5C26B; color:#7A4B00; border-radius:10px; padding:12px 14px; display:none; }
+  table { width:100%; border-collapse:collapse; font-size:13px; }
+  th { text-align:left; background:var(--azul); color:#fff; padding:6px 8px; font-weight:600; }
+  td { padding:6px 8px; border-bottom:1px solid #EEF1F5; vertical-align:top; }
+  tr:nth-child(even) td { background:#F7FAFD; }
+  .botones { display:grid; grid-template-columns:repeat(3,1fr); gap:8px; }
+  .botones button, .chico { border:0; border-radius:10px; padding:11px 6px; font-weight:700; font-size:14px; cursor:pointer; color:#fff; background:var(--azul); }
+  .botones button:disabled { opacity:.45; cursor:not-allowed; }
+  .botones .b-abrir { background:var(--verde); } .botones .b-silenciar { background:var(--ambar); } .botones .b-buscar { background:var(--morado); }
+  .chico { padding:6px 10px; font-size:12px; background:#475569; }
+  #confirmar { display:none; margin-top:10px; padding:10px; border-radius:10px; background:#FEF2F2; border:1px solid #FCA5A5; font-size:13px; }
+  .fotos { display:grid; grid-template-columns:repeat(auto-fill,minmax(180px,1fr)); gap:12px; }
+  .foto { border:1px solid #E5E9F0; border-radius:10px; overflow:hidden; background:#fff; }
+  .foto img { width:100%; display:block; aspect-ratio:4/3; object-fit:cover; background:#222; }
+  .foto div { padding:8px; font-size:12px; }
+  .chip { display:inline-block; padding:2px 8px; border-radius:12px; font-size:11px; font-weight:700; color:#fff; background:var(--gris); }
+  .persona,.rechazado,.caducado { background:var(--rojo); } .sin_persona,.enviado { background:var(--verde); } .pendiente { background:var(--ambar); }
+  .vacio { color:var(--gris); font-size:13px; }
+  .scroll { max-height:290px; overflow:auto; }
+</style>
+</head>
+<body>
+<header>
+  <div><h1>🚲 BikeSafe · Panel del candado</h1><small>Equipo 13 · Sistemas Programables · TecNM León</small></div>
+  <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+    <span id="conexion" class="pildora">Conectando…</span>
+    <span id="placa" class="pildora">ESP32: —</span>
+    <span id="servidor" class="pildora">Servidor IA: —</span>
+    <button id="sesion" class="chico" style="display:none"></button>
+  </div>
+</header>
+<main>
+  <div id="aviso"></div>
+
+  <section class="card s3"><h2>Estado</h2><div class="estado"><span id="led" class="led" title="Color del LED RGB"></span><span id="estado">—</span></div><div class="sub" id="actualizado">sin datos</div></section>
+  <section class="card s3"><h2>Cerrojo (reed switch)</h2><div class="valor" id="cerrojo">—</div><div class="sub">Cable de acero: <b id="lazo">—</b></div></section>
+  <section class="card s2"><h2>Distancia</h2><div><span class="valor" id="distancia">—</span> <span class="unidad">cm</span></div><div class="sub">HC-SR04 · cerca &lt; 50 cm</div></section>
+  <section class="card s2"><h2>Movimiento</h2><div><span class="valor" id="movimiento">—</span> <span class="unidad">g</span></div><div class="sub">MPU6050 · <span id="inclinacion">—</span>°</div></section>
+  <section class="card s2"><h2>Última IA</h2><div class="valor" id="ultima_ia">—</div><div class="sub" id="ultima_alerta">sin alertas</div></section>
+
+  <section class="card s5">
+    <h2>Control remoto</h2>
+    <div class="botones">
+      <button data-cmd="asegurar">🔒 Cerrar</button>
+      <button data-cmd="liberar" class="b-abrir">🔓 Abrir</button>
+      <button data-cmd="foto">📷 Foto</button>
+      <button data-cmd="silenciar" class="b-silenciar">🔕 Silenciar</button>
+      <button data-cmd="buscar" class="b-buscar">🔊 Buscar</button>
+      <button data-cmd="pitido" title="Prueba del actuador: buzzer">🔔 Pitido</button>
+    </div>
+    <div id="confirmar">¿Seguro que quieres <b>ABRIR</b> el candado? Se le avisará al dueño por Telegram.
+      <div style="margin-top:8px;display:flex;gap:8px"><button class="chico" id="si-abrir" style="background:var(--rojo)">Sí, abrir</button><button class="chico" id="no-abrir">Cancelar</button></div></div>
+    <div class="sub" style="margin-top:10px">Cada botón crea un documento en Firestore; el servidor lo escucha en tiempo real, lo firma y lo manda a la ESP32. La ESP32 decide y avisa por Telegram.</div>
+    <table style="margin-top:10px"><thead><tr><th>Hora</th><th>Comando</th><th>Quién</th><th>Estado</th></tr></thead><tbody id="comandos"><tr><td colspan="4" class="vacio">Sin comandos</td></tr></tbody></table>
+  </section>
+  <section class="card s7"><h2>Histórico de sensores</h2><canvas id="grafica" height="150"></canvas></section>
+
+  <section class="card s5"><h2>Alertas recientes</h2><div class="scroll"><table><thead><tr><th>Hora</th><th>Alerta</th></tr></thead><tbody id="alertas"><tr><td colspan="2" class="vacio">Sin alertas</td></tr></tbody></table></div></section>
+  <section class="card s7"><h2>Historial de eventos</h2><div class="scroll"><table><thead><tr><th>Hora</th><th>Qué pasó</th><th>Origen</th></tr></thead><tbody id="eventos"><tr><td colspan="3" class="vacio">Sin eventos</td></tr></tbody></table></div></section>
+
+  <section class="card s12"><h2>Fotos analizadas por la IA (YOLOv5 · detección de personas)</h2><div class="fotos" id="fotos"><span class="vacio">Todavía no hay fotos</span></div></section>
+</main>
+
+<script type="module">
+import { firebaseConfig } from "./firebase-config.js";
+
+const $ = (id) => document.getElementById(id);
+const hora = (d) => d ? d.toLocaleTimeString("es-MX", { hour: "2-digit", minute: "2-digit", second: "2-digit" }) : "—";
+const fmt = (v, n = 1) => (v === null || v === undefined || isNaN(v)) ? "—" : Number(v).toFixed(n);
+// Todo lo que viene de la base se muestra como TEXTO (nunca como HTML)
+const esc = (t) => String(t ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+const COLOR_LED = { verde: "#22C55E", azul: "#2563EB", rojo: "#EF4444", amarillo: "#FACC15", morado: "#A855F7", cian: "#22D3EE", blanco: "#FFFFFF", apagado: "#E5E7EB" };
+const ICONO = { estado: "🔁", comando: "👆", conexion: "📶", cerrojo: "🧲" };
+const NOMBRE_CMD = { asegurar: "Cerrar", liberar: "Abrir", foto: "Foto", silenciar: "Silenciar", buscar: "Buscar", pitido: "Pitido", led_prueba: "LED" };
+
+const grafica = !window.Chart ? null : new Chart($("grafica"), {
+  type: "line",
+  data: { labels: [], datasets: [
+    { label: "Distancia (cm)", data: [], borderColor: "#1F4E79", backgroundColor: "#1F4E79", yAxisID: "y", tension: .3, pointRadius: 2 },
+    { label: "Movimiento (g)", data: [], borderColor: "#D97706", backgroundColor: "#D97706", yAxisID: "y1", tension: .3, pointRadius: 2 },
+    { label: "Inclinación (°)", data: [], borderColor: "#7C3AED", backgroundColor: "#7C3AED", yAxisID: "y2", tension: .3, pointRadius: 2, hidden: true },
+  ]},
+  options: { animation: false, interaction: { mode: "index", intersect: false },
+    scales: { y: { position: "left", title: { display: true, text: "cm" }, beginAtZero: true },
+              y1: { position: "right", title: { display: true, text: "g" }, beginAtZero: true, grid: { drawOnChartArea: false } },
+              y2: { display: false, beginAtZero: true } } },
+});
+
+// ---------- pintar ----------
+let ultimoDato = null, conexionPlaca = null;
+function pintarEstado(e) {
+  $("estado").textContent = e.estado || "—";
+  $("estado").className = e.estado || "";
+  $("led").style.background = COLOR_LED[e.luz] || COLOR_LED.apagado;
+  $("led").title = "LED RGB: " + (e.luz || "—");
+  $("cerrojo").textContent = e.cerrojo || "—";
+  $("cerrojo").className = "valor " + (e.cerrojo === "CERRADO" ? "ok" : e.cerrojo === "ABIERTO" ? "malo" : "");
+  $("lazo").textContent = e.lazo || "—";
+  $("lazo").className = e.lazo === "CORTADO" ? "malo" : "ok";
+  $("distancia").textContent = fmt(e.distancia);
+  $("movimiento").textContent = fmt(e.movimiento, 2);
+  $("inclinacion").textContent = fmt(e.inclinacion);
+  $("ultima_ia").textContent = e.ultima_ia ? `${e.ultima_ia === "persona" ? "Persona" : "Nadie"} ${fmt((e.ultima_confianza || 0) * 100, 0)}%` : "—";
+  $("ultima_ia").style.color = e.ultima_ia === "persona" ? "var(--rojo)" : "var(--verde)";
+  $("ultima_alerta").textContent = e.ultima_alerta || "sin alertas";
+  $("actualizado").textContent = "Actualizado " + hora(e.actualizado);
+  conexionPlaca = e.conexion || null;
+  $("servidor").textContent = "Servidor IA: " + (e.servidor === "online" ? "en línea" : e.servidor === "offline" ? "apagado" : "—");
+  $("servidor").className = "pildora " + (e.servidor === "online" ? "bien" : e.servidor === "offline" ? "mal" : "");
+  pintarPlaca();
+}
+function pintarPlaca() {          // se llama cada segundo
+  const p = $("placa");
+  if (conexionPlaca === "offline") { p.textContent = "ESP32: desconectada"; p.className = "pildora mal"; return; }
+  if (!ultimoDato) { p.textContent = "ESP32: sin datos"; p.className = "pildora"; return; }
+  const s = Math.round((Date.now() - ultimoDato.getTime()) / 1000);
+  const vivo = s < 20;
+  p.textContent = vivo ? `ESP32: en línea · hace ${Math.max(s, 0)} s` : `ESP32: sin datos hace ${s < 120 ? s + " s" : Math.round(s / 60) + " min"}`;
+  p.className = "pildora " + (vivo ? "bien" : "mal");
+}
+setInterval(pintarPlaca, 1000);
+function pintarLecturas(lista) {          // lista: de la mas vieja a la mas nueva
+  if (lista.length) ultimoDato = lista[lista.length - 1].ts;
+  if (!grafica) return;                   // sin internet no carga Chart.js
+  grafica.data.labels = lista.map((l) => hora(l.ts));
+  grafica.data.datasets[0].data = lista.map((l) => l.distancia);
+  grafica.data.datasets[1].data = lista.map((l) => l.movimiento);
+  grafica.data.datasets[2].data = lista.map((l) => l.inclinacion);
+  grafica.update();
+}
+function pintarAlertas(lista) {
+  $("alertas").innerHTML = lista.length ? lista.map((a) =>
+    `<tr><td>${hora(a.ts)}</td><td>${/ROBO/.test(a.texto) ? "🚨" : /IA/.test(a.texto) ? "🤖" : "⚠️"} ${esc(a.texto)}</td></tr>`).join("") : '<tr><td colspan="2" class="vacio">Sin alertas</td></tr>';
+}
+function pintarEventos(lista) {
+  $("eventos").innerHTML = lista.length ? lista.map((e) =>
+    `<tr><td>${hora(e.ts)}</td><td>${ICONO[e.tipo] || "•"} ${esc(e.tipo)}: <b>${esc(e.detalle)}</b></td><td>${esc(e.origen || "—")}</td></tr>`).join("") : '<tr><td colspan="3" class="vacio">Sin eventos</td></tr>';
+}
+function pintarComandos(lista) {
+  $("comandos").innerHTML = lista.length ? lista.map((c) =>
+    `<tr><td>${hora(c.creado)}</td><td>${esc(NOMBRE_CMD[c.cmd] || c.cmd)}</td><td>${esc(c.nombre || "—")}</td><td><span class="chip ${esc(c.estado)}" title="${esc(c.nota || "")}">${esc(c.estado)}</span></td></tr>`).join("") : '<tr><td colspan="4" class="vacio">Sin comandos</td></tr>';
+}
+function pintarFotos(lista) {
+  $("fotos").innerHTML = lista.length ? lista.map((f) => `
+    <div class="foto">
+      ${f.imagen ? `<img src="data:image/jpeg;base64,${esc(f.imagen)}" alt="foto analizada">` : '<img alt="">'}
+      <div><span class="chip ${esc(f.deteccion)}">${f.deteccion === "persona" ? `PERSONA${f.personas > 1 ? " ×" + f.personas : ""}` : "SIN PERSONA"} ${fmt(f.confianza * 100, 0)}%</span><br>
+      ${esc(f.nivel || "")}: ${esc(f.motivo || "")}<br>${esc(f.modelo || "")} · ${hora(f.ts)}</div>
+    </div>`).join("") : '<span class="vacio">Todavía no hay fotos</span>';
+}
+function aviso(texto) { $("aviso").style.display = "block"; $("aviso").textContent = texto; }
+
+// ---------- botones de control ----------
+let enviar = null;                        // se define en vivo o en demo
+document.querySelectorAll("[data-cmd]").forEach((b) => b.onclick = () => {
+  if (b.dataset.cmd === "liberar") { $("confirmar").style.display = "block"; return; }
+  enviar && enviar(b.dataset.cmd);
+});
+$("si-abrir").onclick = () => { $("confirmar").style.display = "none"; enviar && enviar("liberar"); };
+$("no-abrir").onclick = () => { $("confirmar").style.display = "none"; };
+const botonesActivos = (si) => document.querySelectorAll("[data-cmd]").forEach((b) => b.disabled = !si);
+botonesActivos(false);
+
+// ---------- modo demo (sin Firebase) ----------
+// Foto real de su camara (GC0308) ya analizada por servidor/ia/detector.py
+const FOTO_DEMO = "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";
+function demo() {
+  $("conexion").textContent = "Modo demo (datos de ejemplo)";
+  const ahora = Date.now(), ts = (s) => new Date(ahora - s * 1000);
+  const lect = Array.from({ length: 30 }, (_, i) => ({ ts: ts((30 - i) * 5),
+    distancia: i > 22 ? 25 + Math.random() * 10 : 120 + Math.random() * 30, movimiento: i === 25 ? 0.42 : Math.random() * 0.06, inclinacion: Math.random() * 2 }));
+  pintarLecturas(lect);
+  const estado = { estado: "ASEGURADA", luz: "azul", cerrojo: "CERRADO", lazo: "ENTERO", distancia: 28.4, movimiento: 0.03, inclinacion: 1.2, ultima_ia: "persona",
+                   ultima_confianza: 0.63, ultima_alerta: "IA: persona junto a la bici (63%)", actualizado: new Date(), conexion: "online", servidor: "online" };
+  pintarEstado(estado);
+  pintarAlertas([{ ts: ts(5), texto: "IA: persona junto a la bici (63%)" }, { ts: ts(9), texto: "Alguien cerca de la bici" },
+                 { ts: ts(40), texto: "AVISO: Movimiento (1 de 4)" }]);
+  const eventos = [{ ts: ts(60), tipo: "estado", detalle: "LIBRE -> ASEGURADA", origen: "telegram" }, { ts: ts(61), tipo: "comando", detalle: "asegurar", origen: "telegram" },
+                   { ts: ts(120), tipo: "conexion", detalle: "ESP32 online", origen: "broker" }];
+  pintarEventos(eventos);
+  const comandos = [];
+  pintarComandos(comandos);
+  pintarFotos([{ deteccion: "persona", personas: 1, confianza: 0.63, nivel: "PRESENCIA", motivo: "Alguien a 28 cm", modelo: "yolov5s-coco", ts: ts(5), imagen: FOTO_DEMO },
+               { deteccion: "sin_persona", personas: 0, confianza: 0.0, nivel: "AVISO", motivo: "Movimiento (1 de 4)", modelo: "yolov5s-coco", ts: ts(40) }]);
+  botonesActivos(true);
+  enviar = (cmd) => {                     // simula servidor + ESP32
+    const c = { cmd, nombre: "Demo", estado: "pendiente", creado: new Date() };
+    comandos.unshift(c); pintarComandos(comandos.slice(0, 6));
+    setTimeout(() => {
+      c.estado = "enviado"; pintarComandos(comandos.slice(0, 6));
+      if (cmd === "liberar") Object.assign(estado, { estado: "LIBRE", luz: "verde" });
+      if (cmd === "asegurar") Object.assign(estado, { estado: "ASEGURADA", luz: "azul" });
+      eventos.unshift({ ts: new Date(), tipo: "comando", detalle: cmd, origen: "dashboard: Demo" }); pintarEventos(eventos);
+      estado.actualizado = new Date(); pintarEstado(estado);
+    }, 700);
+  };
+}
+
+// ---------- Firebase en tiempo real ----------
+async function enVivo() {
+  const { initializeApp } = await import("https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js");
+  const { getFirestore, doc, collection, query, orderBy, limit, onSnapshot, addDoc, serverTimestamp } =
+    await import("https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js");
+  const { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged } =
+    await import("https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js");
+  const app = initializeApp(firebaseConfig);
+  const db = getFirestore(app);
+  const auth = getAuth(app);
+  const raiz = ["proyectos", "bikesafe"];
+  const fecha = (x) => (x && x.toDate) ? x.toDate() : x;
+  const ultimos = (col, n, campo = "ts") => query(collection(db, ...raiz, col), orderBy(campo, "desc"), limit(n));
+  const datos = (snap) => snap.docs.map((d) => { const v = d.data(); return { ...v, ts: fecha(v.ts), creado: fecha(v.creado) }; });
+  let cancelar = [];
+
+  // Solo los integrantes del equipo pueden ver los datos y mandar
+  // comandos (reglas de Firestore por UID). Nada es publico.
+  onAuthStateChanged(auth, (usuario) => {
+    cancelar.forEach((f) => f()); cancelar = [];
+    const boton = $("sesion");
+    boton.style.display = "inline-block";
+    if (!usuario) {
+      $("conexion").textContent = "Sin sesión";
+      botonesActivos(false); enviar = null;
+      boton.textContent = "Iniciar sesión con Google";
+      boton.onclick = () => signInWithPopup(auth, new GoogleAuthProvider()).catch((e) => aviso("No se pudo iniciar sesión: " + e.message));
+      aviso("Inicien sesión con su cuenta de Google del equipo para ver el panel. Los datos y las fotos son privados.");
+      return;
+    }
+    $("aviso").style.display = "none";
+    boton.textContent = "Salir (" + (usuario.displayName || usuario.email) + ")";
+    boton.onclick = () => signOut(auth);
+    const error = (e) => {
+      $("conexion").textContent = "Sin permiso";
+      aviso(e.code === "permission-denied"
+        ? "Tu cuenta no tiene permiso. Pásale este UID a quien administra el proyecto para agregarlo a las reglas: " + usuario.uid
+        : "No pude leer Firestore: " + e.message);
+    };
+    // ESCUCHAR: cada onSnapshot se dispara solo cuando cambia algo
+    cancelar.push(onSnapshot(doc(db, ...raiz, "estado", "actual"), (s) => {
+      $("conexion").textContent = "● En vivo (Firestore)";
+      if (s.exists()) { const v = s.data(); pintarEstado({ ...v, actualizado: fecha(v.actualizado) }); }
+    }, error));
+    cancelar.push(onSnapshot(ultimos("lecturas", 40), (s) => pintarLecturas(datos(s).reverse()), error));
+    cancelar.push(onSnapshot(ultimos("alertas", 15), (s) => pintarAlertas(datos(s)), error));
+    cancelar.push(onSnapshot(ultimos("eventos", 20), (s) => pintarEventos(datos(s)), error));
+    cancelar.push(onSnapshot(ultimos("eventos_ia", 8), (s) => pintarFotos(datos(s)), error));
+    cancelar.push(onSnapshot(ultimos("comandos", 6, "creado"), (s) => pintarComandos(datos(s)), error));
+    // GUARDAR: los botones crean un comando "pendiente"
+    botonesActivos(true);
+    enviar = async (cmd) => {
+      try {
+        await addDoc(collection(db, ...raiz, "comandos"), { cmd, estado: "pendiente", uid: usuario.uid,
+          nombre: (usuario.displayName || usuario.email || "").slice(0, 59), creado: serverTimestamp() });
+      } catch (e) { aviso("No se pudo mandar el comando: " + e.message); }
+    };
+  });
+}
+
+const sinConfig = firebaseConfig.projectId === "PEGA_AQUI";
+if (new URLSearchParams(location.search).has("demo")) {
+  demo();
+} else if (sinConfig) {
+  demo();
+  aviso("Falta llenar interfaz/firebase-config.js con los datos de su proyecto de Firebase. Mientras, se muestran datos de ejemplo.");
+} else {
+  enVivo().catch((e) => { aviso("No pude cargar Firebase: " + e.message); });
+}
+</script>
+</body>
+</html>
