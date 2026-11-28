@@ -1,0 +1,8 @@
+{
+  "rules": {
+    "Modelo": {
+      ".read": true,
+      ".write": "auth != null"
+    }
+  }
+}

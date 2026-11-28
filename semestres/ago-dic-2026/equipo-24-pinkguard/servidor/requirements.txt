@@ -1,0 +1,7 @@
+paho-mqtt>=2.0.0
+firebase-admin>=6.5.0
+ultralytics>=8.2.0
+opencv-python>=4.9.0
+numpy>=1.26.0
+cloudinary>=1.40.0
+python-dotenv>=1.0.1

@@ -1,0 +1,1 @@
+Aqui se encuentra el HAL del ESP master, debe encontrarse en la misma carpeta para el correcto mapeo en version fisica
