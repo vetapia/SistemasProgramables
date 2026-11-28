@@ -1,0 +1,1 @@
+if(!inv) instance_destroy();
