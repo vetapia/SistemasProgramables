@@ -1,0 +1,78 @@
+<!-- ============================================
+Proyecto:  MEOWGUARD — Sistema Robótico Autónomo de Control de Plagas
+Archivo:   control.html
+Objetivo:  Interfaz web local alojada en el ESP32 para control manual y telemetría del robot
+Equipo:    Mónica Moreno Torres (23241119), Leonardo Gael Niño Cabrera (23240382)
+Materia:   Sistemas Programables — ISC TecNM León
+Semestre:  ago-dic-2026
+============================================ -->
+<!doctype html>
+<html lang="es">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Meowguard | Control local</title>
+<style>
+body{font:1rem system-ui;background:#111c21;color:#edf4ef;text-align:center;margin:1rem}main{max-width:34rem;margin:auto}
+button{font:inherit;padding:.85rem;min-width:4rem;margin:.18rem;border:0;border-radius:.5rem;touch-action:none}
+[data-dir]{background:#b9eabf;font-size:1.25rem}#stop{background:#ab2f39;color:white}pre{text-align:left;white-space:pre-wrap;background:#21343a;padding:1rem;border-radius:.5rem}
+</style>
+<main>
+<h1>Meowguard</h1>
+<pre id="status" role="status">Conectando…</pre>
+<button data-cmd="manual">Manual</button><button data-cmd="auto">Automático</button>
+<p>Mantén pulsada una flecha para mover el carrito.</p>
+<div><button data-dir="f" aria-label="Adelante">▲</button></div>
+<div><button data-dir="l" aria-label="Izquierda">◀</button><button data-dir="b" aria-label="Reversa">▼</button><button data-dir="r" aria-label="Derecha">▶</button></div>
+<p><button id="stop">Parada</button><button data-cmd="spray">Atomizar</button></p>
+<label>PWM base <input id="power" type="range" min="25" max="80" value="55" oninput="valueLabel.value=this.value"> <output id="valueLabel">55</output>%</label>
+<p id="message" role="status"></p>
+</main>
+<script>
+const statusBox = document.querySelector('#status'), message = document.querySelector('#message');
+const power = document.querySelector('#power'), valueLabel = document.querySelector('#valueLabel');
+let held = null, timer, firstStatus = true, queue = Promise.resolve(), pending = false;
+function send(command) {
+  queue = queue.catch(() => {}).then(async () => {
+    const result = await fetch('/cmd?c=' + command, {method:'POST', headers:{'X-Meowguard':'local'}, signal:AbortSignal.timeout(550)});
+    message.textContent = result.ok ? '' : await result.text();
+  }).catch(() => { message.textContent = 'Sin respuesta del carrito'; });
+  return queue;
+}
+function release() { if (held !== null) {held = null; clearInterval(timer); send('stop');} }
+document.querySelectorAll('[data-dir]').forEach(button => {
+  button.onpointerdown = event => {
+    if (held !== null) return;
+    event.preventDefault(); button.setPointerCapture(event.pointerId); held = button.dataset.dir;
+    const repeat = () => {
+      if (held === null || pending) return;
+      pending = true; send(held).finally(() => { pending = false; });
+    };
+    repeat(); timer = setInterval(repeat, 180);
+  };
+  button.onpointerup = button.onpointercancel = button.onlostpointercapture = release;
+});
+document.querySelector('#stop').onclick = () => { if (held === null) send('stop'); else release(); };
+document.querySelectorAll('[data-cmd]').forEach(button => button.onclick = () => send(button.dataset.cmd));
+window.addEventListener('blur', release);
+document.addEventListener('visibilitychange', () => { if (document.hidden) release(); });
+power.onchange = () => send('power=' + power.value);
+async function refresh() {
+  try {
+    const s = await (await fetch('/status',{signal:AbortSignal.timeout(650)})).json();
+    if (firstStatus) { power.value = s.power; valueLabel.value = s.power; firstStatus = false; }
+    statusBox.textContent = [
+      'Modo ' + (s.mode === 'auto' ? 'automático' : 'manual'),
+      'Frente ' + (s.front === null ? 'sin eco' : s.front + ' cm') + ' · Atrás ' + (s.rear ? 'obstáculo' : 'libre'),
+      'Giroscopio ' + s.imu + ' · Giro ' + s.yaw_dps + ' °/s',
+      'PWM  Izq ' + s.pwm_left + '% · Der ' + s.pwm_right + '%',
+      s.wheel_alert ? 'Posible incidencia: ' + s.wheel_alert.wheel + ' (' + s.wheel_alert.reason + ')' :
+      s.drift ? 'Desvío detectado · Posible pérdida de tracción' : 'Sin alertas de tracción',
+      'Atomizador ' + s.atomizer + ' · MQTT ' + (s.mqtt ? 'conectado' : 'desconectado'),
+      s.last_detection ? 'Última detección recibida: ' + s.last_detection : ''
+    ].filter(Boolean).join('\n');
+  } catch { statusBox.textContent = 'Sin respuesta del ESP32'; }
+  setTimeout(refresh, 750);
+}
+refresh();
+</script>
+</html>

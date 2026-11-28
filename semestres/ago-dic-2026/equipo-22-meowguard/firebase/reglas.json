@@ -1,0 +1,30 @@
+{
+  "rules": {
+    ".read": false,
+    ".write": false,
+    "access": { ".read": false, ".write": false },
+    "meowguard": {
+      ".read": "auth != null && (root.child('access').child(auth.uid).val() === 'viewer' || root.child('access').child(auth.uid).val() === 'writer')",
+      "detections": {
+        ".indexOn": ["ts_ms"],
+        "$id": {
+          ".write": "auth != null && root.child('access').child(auth.uid).val() === 'writer' && newData.exists()",
+          ".validate": "newData.hasChildren(['id', 'label', 'confidence', 'bbox_xyxy', 'source', 'ts_ms']) && newData.child('id').val() === $id",
+          "id": { ".validate": "newData.isString()" },
+          "label": { ".validate": "newData.isString() && newData.val().length > 0 && newData.val().length <= 100" },
+          "confidence": { ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 1" },
+          "bbox_xyxy": { ".validate": "newData.hasChildren(['0', '1', '2', '3'])" },
+          "source": { ".validate": "newData.isString()" },
+          "ts_ms": { ".validate": "newData.isNumber()" },
+          "$other": { ".validate": false }
+        }
+      },
+      "telemetry": {
+        "latest": {
+          ".write": "auth != null && root.child('access').child(auth.uid).val() === 'writer' && newData.exists()",
+          ".validate": "newData.hasChildren(['mode', 'motion', 'power', 'imu', 'yaw_dps', 'pwm_left', 'pwm_right', 'ts_ms']) && (newData.child('mode').val() === 'manual' || newData.child('mode').val() === 'auto') && newData.child('ts_ms').isNumber()"
+        }
+      }
+    }
+  }
+}
