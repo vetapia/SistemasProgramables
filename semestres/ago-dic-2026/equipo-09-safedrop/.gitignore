@@ -1,0 +1,20 @@
+# Configuraciones privadas y credenciales
+.env
+.env.*
+!.env.example
+config.py
+**/config.py
+
+# Archivos temporales de Python
+__pycache__/
+*.pyc
+*.pyo
+
+# Entornos virtuales
+venv/
+.venv/
+
+# Capturas temporales
+pruebas/camara/*.jpg
+pruebas/camara/*.jpeg
+pruebas/camara/*.png
